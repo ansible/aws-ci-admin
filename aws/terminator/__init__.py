@@ -17,10 +17,12 @@ import dateutil.tz
 
 logger = logging.getLogger('cleanup')
 
-AWS_REGION = 'us-east-1'
 
 T = typing.TypeVar('T')
 
+
+def get_aws_region():
+    return os.environ.get("CLEANUP_AWS_REGION") or "us-east-1"
 
 def log_exception(message: str, *args, level: int = logging.ERROR) -> None:
     payload = dict(
@@ -38,24 +40,14 @@ def import_plugins() -> None:
         __import__(f'terminator.{import_name}')
 
 
-def cleanup(stage: str, check: bool, force: bool, api_name: str, test_account_id: str, targets: typing.Optional[typing.List[str]] = None) -> None:
-    kvs.domain_name = re.sub(r'[^a-zA-Z0-9]+', '_', f'{api_name}-resources-{stage}')
+def cleanup(check: bool, force: bool, api_name: str, targets: typing.Optional[typing.List[str]] = None) -> None:
+    kvs.domain_name = re.sub(r'[^a-zA-Z0-9]+', '_', f'{api_name}-resources')
     kvs.initialize()
 
-    cleanup_test_account(stage, check, force, api_name, test_account_id, targets)
+    cleanup_test_account(check, force, targets)
 
     if not targets or 'Database' in targets:
         cleanup_database(check, force)
-
-
-def assume_session(role: str, session_name: str) -> boto3.Session:
-    sts = boto3.client('sts')
-    credentials = sts.assume_role(
-        RoleArn=role, RoleSessionName=session_name).get('Credentials')
-    return boto3.Session(
-        aws_access_key_id=credentials['AccessKeyId'],
-        aws_secret_access_key=credentials['SecretAccessKey'],
-        aws_session_token=credentials['SessionToken'])
 
 
 def process_instance(instance: 'Terminator', check: bool, force: bool = False) -> str:
@@ -72,9 +64,7 @@ def process_instance(instance: 'Terminator', check: bool, force: bool = False) -
     return status
 
 
-def cleanup_test_account(stage: str, check: bool, force: bool, api_name: str, test_account_id: str, targets: typing.Optional[typing.List[str]] = None) -> None:
-    role = f'arn:aws:iam::{test_account_id}:role/{api_name}-test-{stage}'
-    credentials = assume_session(role, 'cleanup')
+def cleanup_test_account(check: bool, force: bool, targets: typing.Optional[typing.List[str]] = None) -> None:
 
     for terminator_type in sorted(get_concrete_subclasses(Terminator), key=lambda value: value.__name__):
         if targets and terminator_type.__name__ not in targets:
@@ -83,7 +73,7 @@ def cleanup_test_account(stage: str, check: bool, force: bool, api_name: str, te
         # noinspection PyBroadException
         try:
             # noinspection PyUnresolvedReferences
-            instances = terminator_type.create(credentials)
+            instances = terminator_type.create()
 
             for instance in instances:
                 status = process_instance(instance, check, force)
@@ -166,8 +156,8 @@ def get_concrete_subclasses(class_type: typing.Type[T]) -> typing.Set[typing.Typ
     return subclasses
 
 
-def get_account_id(session: boto3.Session) -> str:
-    return session.client('sts').get_caller_identity().get('Account')
+def get_account_id() -> str:
+    return boto3.client('sts').get_caller_identity().get('Account')
 
 
 def get_tag_dict_from_tag_list(tag_list: typing.Optional[typing.List[typing.Dict[str, str]]]) -> typing.Dict[str, str]:
@@ -188,7 +178,7 @@ class Terminator(abc.ABC):
 
     @staticmethod
     @abc.abstractmethod
-    def create(credentials: boto3.Session) -> typing.List['Terminator']:
+    def create() -> typing.List['Terminator']:
         pass
 
     @property
@@ -242,9 +232,9 @@ class Terminator(abc.ABC):
             return type(self).__name__
 
     @staticmethod
-    def _create(session: boto3.Session, instance_type: typing.Type['Terminator'], client_name: str,
+    def _create(instance_type: typing.Type['Terminator'], client_name: str,
                 describe_lambda: typing.Callable[[botocore.client.BaseClient], typing.List[typing.Dict[str, typing.Any]]]) -> typing.List['Terminator']:
-        client = session.client(client_name, region_name=AWS_REGION)
+        client = boto3.client(client_name, region_name=get_aws_region())
         instances = describe_lambda(client)
         terminators = [instance_type(client, instance) for instance in instances]
         logger.debug('located %s: count=%d', instance_type.__name__, len(terminators))
@@ -270,7 +260,7 @@ class Terminator(abc.ABC):
 class DbTerminator(Terminator):
     """Base class for classes which find and terminate AWS resources with age tracked via DynamoDB."""
     def __init__(self, client: botocore.client.BaseClient, instance: typing.Dict[str, typing.Any]):
-        super(DbTerminator, self).__init__(client, instance)
+        super().__init__(client, instance)
 
         self._kvs_key = None
         self._kvs_value = None
@@ -328,7 +318,7 @@ class KeyValueStore:
         if self.initialized:
             return
 
-        self.ddb = boto3.resource('dynamodb', region_name=AWS_REGION)
+        self.ddb = boto3.resource('dynamodb', region_name=get_aws_region())
 
         try:
             self.table = self.ddb.Table(self.domain_name)

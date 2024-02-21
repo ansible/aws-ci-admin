@@ -1,13 +1,19 @@
-# This is the account in which the lambda functions are run.
-# It must be different from the account which runs the integration tests.
-lambda_account_id: '900854079004'
-
-# This is the account in which the integration tests are run.
-# It must be different from the account which runs the lambda functions.
-test_account_id: '966509639900'
-
 # The API name is used to tag and prefix aws resources.
-api_name: 'ansible-core-ci'
+api_name: 'terminator-cleanup'
 
 # The AWS Region that tests will be run in
 aws_region: 'us-east-1'
+
+iam_role_name: "{{ api_name }}-terminator"
+iam_role_policy_document:
+  Version: "2012-10-17"
+  Statement:
+    Action: "sts:AssumeRole"
+    Principal:
+      Service: "lambda.amazonaws.com"
+    Effect: "Allow"
+iam_policy_name: "{{ api_name }}-terminator-admin"
+lambda_layer_name: "{{ api_name }}-terminator-requirements"
+lambda_name: "{{ api_name }}-terminator"
+lambda_alias_name: "prod"
+cloudwatch_event_name: "{{ api_name }}-terminator"

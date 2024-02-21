@@ -1,15 +1,17 @@
 import datetime
 
+import botocore.exceptions
+
 from . import DbTerminator, Terminator, get_tag_dict_from_tag_list
 
 
 class DmsSubnetGroup(DbTerminator):
     @staticmethod
-    def create(credentials):
+    def create():
         def paginate_dms_subnet_groups(client):
             return client.get_paginator('describe_replication_subnet_groups').paginate().build_full_result()['ReplicationSubnetGroups']
 
-        return Terminator._create(credentials, DmsSubnetGroup, 'dms', paginate_dms_subnet_groups)
+        return Terminator._create(DmsSubnetGroup, 'dms', paginate_dms_subnet_groups)
 
     @property
     def id(self):
@@ -25,11 +27,11 @@ class DmsSubnetGroup(DbTerminator):
 
 class RedshiftSubnetGroup(DbTerminator):
     @staticmethod
-    def create(credentials):
+    def create():
         def paginate_redshift_subnet_groups(client):
             return client.get_paginator('describe_cluster_subnet_groups').paginate().build_full_result()['ClusterSubnetGroups']
 
-        return Terminator._create(credentials, RedshiftSubnetGroup, 'redshift', paginate_redshift_subnet_groups)
+        return Terminator._create(RedshiftSubnetGroup, 'redshift', paginate_redshift_subnet_groups)
 
     @property
     def id(self):
@@ -45,7 +47,7 @@ class RedshiftSubnetGroup(DbTerminator):
 
 class Elasticache(Terminator):
     @staticmethod
-    def create(credentials):
+    def create():
 
         def get_available_clusters(client):
             # describe_cache_clusters does not have a parameter to filter results
@@ -54,7 +56,7 @@ class Elasticache(Terminator):
             clusters = client.describe_cache_clusters()['CacheClusters']
             return [cluster for cluster in clusters if cluster['CacheClusterStatus'] not in ignore_states]
 
-        return Terminator._create(credentials, Elasticache, 'elasticache', get_available_clusters)
+        return Terminator._create(Elasticache, 'elasticache', get_available_clusters)
 
     @property
     def name(self):
@@ -75,8 +77,8 @@ class Elasticache(Terminator):
 
 class GlueConnection(Terminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, GlueConnection, 'glue', lambda client: client.get_connections()['ConnectionList'])
+    def create():
+        return Terminator._create(GlueConnection, 'glue', lambda client: client.get_connections()['ConnectionList'])
 
     @property
     def id(self):
@@ -96,8 +98,8 @@ class GlueConnection(Terminator):
 
 class GlueCrawler(Terminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, GlueCrawler, 'glue', lambda client: client.get_crawlers()['Crawlers'])
+    def create():
+        return Terminator._create(GlueCrawler, 'glue', lambda client: client.get_crawlers()['Crawlers'])
 
     @property
     def id(self):
@@ -117,8 +119,8 @@ class GlueCrawler(Terminator):
 
 class GlueJob(Terminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, GlueJob, 'glue', lambda client: client.get_jobs()['Jobs'])
+    def create():
+        return Terminator._create(GlueJob, 'glue', lambda client: client.get_jobs()['Jobs'])
 
     @property
     def id(self):
@@ -138,8 +140,8 @@ class GlueJob(Terminator):
 
 class Glacier(Terminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Glacier, 'glacier', lambda client: client.list_vaults()['VaultList'])
+    def create():
+        return Terminator._create(Glacier, 'glacier', lambda client: client.list_vaults()['VaultList'])
 
     @property
     def id(self):
@@ -159,8 +161,8 @@ class Glacier(Terminator):
 
 class RdsDbParameterGroup(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, RdsDbParameterGroup, 'rds', lambda client: client.describe_db_parameter_groups()['DBParameterGroups'])
+    def create():
+        return Terminator._create(RdsDbParameterGroup, 'rds', lambda client: client.describe_db_parameter_groups()['DBParameterGroups'])
 
     @property
     def id(self):
@@ -178,10 +180,32 @@ class RdsDbParameterGroup(DbTerminator):
         self.client.delete_db_parameter_group(DBParameterGroupName=self.name)
 
 
+class RdsDbClusterParameterGroup(DbTerminator):
+    @staticmethod
+    def create():
+        return Terminator._create(RdsDbClusterParameterGroup, 'rds',
+                                  lambda client: client.describe_db_cluster_parameter_groups()['DBClusterParameterGroups'])
+
+    @property
+    def id(self):
+        return self.instance['DBClusterParameterGroupArn']
+
+    @property
+    def name(self):
+        return self.instance['DBClusterParameterGroupName']
+
+    @property
+    def ignore(self):
+        return self.name.startswith('default')
+
+    def terminate(self):
+        self.client.delete_db_cluster_parameter_group(DBClusterParameterGroupName=self.name)
+
+
 class RdsDbInstance(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, RdsDbInstance, 'rds', lambda client: client.describe_db_instances()['DBInstances'])
+    def create():
+        return Terminator._create(RdsDbInstance, 'rds', lambda client: client.describe_db_instances()['DBInstances'])
 
     @property
     def id(self):
@@ -196,14 +220,19 @@ class RdsDbInstance(DbTerminator):
         return datetime.timedelta(minutes=60)
 
     def terminate(self):
-        self.client.modify_db_instance(DBInstanceIdentifier=self.name, BackupRetentionPeriod=0)
+        try:
+            self.client.modify_db_instance(DBInstanceIdentifier=self.name, BackupRetentionPeriod=0, DeletionProtection=False)
+        except botocore.exceptions.ClientError as ex:
+            # The instance can't be modifed when it's part of a cluster
+            if ex.response['Error']['Code'] != 'InvalidParameterCombination':
+                raise
         self.client.delete_db_instance(DBInstanceIdentifier=self.name, SkipFinalSnapshot=True)
 
 
 class RdsDbSnapshot(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, RdsDbSnapshot, 'rds',
+    def create():
+        return Terminator._create(RdsDbSnapshot, 'rds',
                                   lambda client: client.describe_db_snapshots(SnapshotType='manual')['DBSnapshots'])
 
     @property
@@ -220,8 +249,8 @@ class RdsDbSnapshot(DbTerminator):
 
 class RdsDbCluster(Terminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, RdsDbCluster, 'rds', lambda client: client.describe_db_clusters()['DBClusters'])
+    def create():
+        return Terminator._create(RdsDbCluster, 'rds', lambda client: client.describe_db_clusters()['DBClusters'])
 
     @property
     def id(self):
@@ -240,14 +269,14 @@ class RdsDbCluster(Terminator):
         return self.instance['ClusterCreateTime']
 
     def terminate(self):
-        self.client.modify_db_cluster(DBClusterIdentifier=self.name, BackupRetentionPeriod=1)
+        self.client.modify_db_cluster(DBClusterIdentifier=self.name, BackupRetentionPeriod=1, DeletionProtection=False)
         self.client.delete_db_cluster(DBClusterIdentifier=self.name, SkipFinalSnapshot=True)
 
 
 class RdsDbClusterSnapshot(Terminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, RdsDbClusterSnapshot, 'rds',
+    def create():
+        return Terminator._create(RdsDbClusterSnapshot, 'rds',
                                   lambda client: client.describe_db_cluster_snapshots(SnapshotType='manual')['DBClusterSnapshots'])
 
     @property
@@ -268,7 +297,7 @@ class RdsDbClusterSnapshot(Terminator):
 
 class RedshiftCluster(Terminator):
     @staticmethod
-    def create(credentials):
+    def create():
 
         def get_available_clusters(client):
             # describe_clusters does not have a parameter to filter results
@@ -277,7 +306,7 @@ class RedshiftCluster(Terminator):
             clusters = client.describe_clusters()['Clusters']
             return [cluster for cluster in clusters if cluster['ClusterStatus'] not in ignore_states]
 
-        return Terminator._create(credentials, RedshiftCluster, 'redshift', get_available_clusters)
+        return Terminator._create(RedshiftCluster, 'redshift', get_available_clusters)
 
     @property
     def name(self):
@@ -297,8 +326,8 @@ class RedshiftCluster(Terminator):
 
 class RdsOptionGroup(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, RdsOptionGroup, 'rds', lambda client: client.describe_option_groups()['OptionGroupsList'])
+    def create():
+        return Terminator._create(RdsOptionGroup, 'rds', lambda client: client.describe_option_groups()['OptionGroupsList'])
 
     @property
     def id(self):
@@ -318,8 +347,8 @@ class RdsOptionGroup(DbTerminator):
 
 class KafkaConfiguration(Terminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, KafkaConfiguration, 'kafka', lambda client: client.list_configurations()['Configurations'])
+    def create():
+        return Terminator._create(KafkaConfiguration, 'kafka', lambda client: client.list_configurations()['Configurations'])
 
     @property
     def id(self):
@@ -343,8 +372,8 @@ class KafkaConfiguration(Terminator):
 
 class KafkaCluster(Terminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, KafkaCluster, 'kafka', lambda client: client.list_clusters()['ClusterInfoList'])
+    def create():
+        return Terminator._create(KafkaCluster, 'kafka', lambda client: client.list_clusters()['ClusterInfoList'])
 
     @property
     def id(self):

@@ -24,8 +24,8 @@ class Waf(DbTerminator):
 
 class WafWebAcl(Waf):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, WafWebAcl, 'waf', lambda client: client.list_web_acls()['WebACLs'])
+    def create():
+        return Terminator._create(WafWebAcl, 'waf', lambda client: client.list_web_acls()['WebACLs'])
 
     @property
     def age_limit(self):
@@ -46,8 +46,8 @@ class WafWebAcl(Waf):
 
 class WafRule(Waf):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, WafRule, 'waf', lambda client: client.list_rules()['Rules'])
+    def create():
+        return Terminator._create(WafRule, 'waf', lambda client: client.list_rules()['Rules'])
 
     @property
     def id(self):
@@ -63,8 +63,8 @@ class WafRule(Waf):
 
 class WafXssMatchSet(Waf):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, WafXssMatchSet, 'waf', lambda client: client.list_xss_match_sets()['XssMatchSets'])
+    def create():
+        return Terminator._create(WafXssMatchSet, 'waf', lambda client: client.list_xss_match_sets()['XssMatchSets'])
 
     @property
     def id(self):
@@ -80,8 +80,8 @@ class WafXssMatchSet(Waf):
 
 class WafGeoMatchSet(Waf):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, WafGeoMatchSet, 'waf', lambda client: client.list_geo_match_sets()['GeoMatchSets'])
+    def create():
+        return Terminator._create(WafGeoMatchSet, 'waf', lambda client: client.list_geo_match_sets()['GeoMatchSets'])
 
     @property
     def id(self):
@@ -97,8 +97,8 @@ class WafGeoMatchSet(Waf):
 
 class WafSqlInjectionMatchSet(Waf):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, WafSqlInjectionMatchSet, 'waf', lambda client: client.list_sql_injection_match_sets()['SqlInjectionMatchSets'])
+    def create():
+        return Terminator._create(WafSqlInjectionMatchSet, 'waf', lambda client: client.list_sql_injection_match_sets()['SqlInjectionMatchSets'])
 
     @property
     def id(self):
@@ -114,8 +114,8 @@ class WafSqlInjectionMatchSet(Waf):
 
 class WafIpSet(Waf):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, WafIpSet, 'waf', lambda client: client.list_ip_sets()['IPSets'])
+    def create():
+        return Terminator._create(WafIpSet, 'waf', lambda client: client.list_ip_sets()['IPSets'])
 
     @property
     def id(self):
@@ -131,8 +131,8 @@ class WafIpSet(Waf):
 
 class WafSizeConstraintSet(Waf):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, WafSizeConstraintSet, 'waf', lambda client: client.list_size_constraint_sets()['SizeConstraintSets'])
+    def create():
+        return Terminator._create(WafSizeConstraintSet, 'waf', lambda client: client.list_size_constraint_sets()['SizeConstraintSets'])
 
     @property
     def id(self):
@@ -148,8 +148,8 @@ class WafSizeConstraintSet(Waf):
 
 class WafByteMatchSet(Waf):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, WafByteMatchSet, 'waf', lambda client: client.list_byte_match_sets()['ByteMatchSets'])
+    def create():
+        return Terminator._create(WafByteMatchSet, 'waf', lambda client: client.list_byte_match_sets()['ByteMatchSets'])
 
     @property
     def id(self):
@@ -165,8 +165,8 @@ class WafByteMatchSet(Waf):
 
 class WafRegexMatchSet(Waf):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, WafRegexMatchSet, 'waf', lambda client: client.list_regex_match_sets()['RegexMatchSets'])
+    def create():
+        return Terminator._create(WafRegexMatchSet, 'waf', lambda client: client.list_regex_match_sets()['RegexMatchSets'])
 
     @property
     def id(self):
@@ -182,8 +182,8 @@ class WafRegexMatchSet(Waf):
 
 class WafRegexPatternSet(Waf):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, WafRegexPatternSet, 'waf', lambda client: client.list_regex_pattern_sets()['RegexPatternSets'])
+    def create():
+        return Terminator._create(WafRegexPatternSet, 'waf', lambda client: client.list_regex_pattern_sets()['RegexPatternSets'])
 
     @property
     def id(self):
@@ -221,8 +221,8 @@ class WafV2(DbTerminator):
 
 class RegionalWafV2IpSet(WafV2):
     @staticmethod
-    def create(credentials):
-        return DbTerminator._create(credentials, RegionalWafV2IpSet, 'wafv2', lambda client: client.list_ip_sets(Scope='REGIONAL')['IPSets'])
+    def create():
+        return DbTerminator._create(RegionalWafV2IpSet, 'wafv2', lambda client: client.list_ip_sets(Scope='REGIONAL')['IPSets'])
 
     def terminate(self):
         self.client.delete_ip_set(Id=self.id, Name=self.name, LockToken=self.lock_token, Scope='REGIONAL')
@@ -230,8 +230,8 @@ class RegionalWafV2IpSet(WafV2):
 
 class CloudfrontWafV2IpSet(WafV2):
     @staticmethod
-    def create(credentials):
-        return DbTerminator._create(credentials, CloudfrontWafV2IpSet, 'wafv2', lambda client: client.list_ip_sets(Scope='CLOUDFRONT')['IPSets'])
+    def create():
+        return DbTerminator._create(CloudfrontWafV2IpSet, 'wafv2', lambda client: client.list_ip_sets(Scope='CLOUDFRONT')['IPSets'])
 
     def terminate(self):
         self.client.delete_ip_set(Id=self.id, Name=self.name, LockToken=self.lock_token, Scope='CLOUDFRONT')
@@ -239,8 +239,8 @@ class CloudfrontWafV2IpSet(WafV2):
 
 class RegionalWafV2RuleGroup(WafV2):
     @staticmethod
-    def create(credentials):
-        return DbTerminator._create(credentials, RegionalWafV2RuleGroup, 'wafv2', lambda client: client.list_rule_groups(Scope='REGIONAL')['RuleGroups'])
+    def create():
+        return DbTerminator._create(RegionalWafV2RuleGroup, 'wafv2', lambda client: client.list_rule_groups(Scope='REGIONAL')['RuleGroups'])
 
     def terminate(self):
         self.client.delete_rule_group(Id=self.id, Name=self.name, LockToken=self.lock_token, Scope='REGIONAL')
@@ -248,8 +248,8 @@ class RegionalWafV2RuleGroup(WafV2):
 
 class CloudfrontWafV2RuleGroup(WafV2):
     @staticmethod
-    def create(credentials):
-        return DbTerminator._create(credentials, CloudfrontWafV2RuleGroup, 'wafv2', lambda client: client.list_rule_groups(Scope='CLOUDFRONT')['RuleGroups'])
+    def create():
+        return DbTerminator._create(CloudfrontWafV2RuleGroup, 'wafv2', lambda client: client.list_rule_groups(Scope='CLOUDFRONT')['RuleGroups'])
 
     def terminate(self):
         self.client.delete_rule_group(Id=self.id, Name=self.name, LockToken=self.lock_token, Scope='CLOUDFRONT')
@@ -257,8 +257,8 @@ class CloudfrontWafV2RuleGroup(WafV2):
 
 class RegionalWafV2WebAcl(WafV2):
     @staticmethod
-    def create(credentials):
-        return DbTerminator._create(credentials, RegionalWafV2WebAcl, 'wafv2', lambda client: client.list_web_acls(Scope='REGIONAL')['WebACLs'])
+    def create():
+        return DbTerminator._create(RegionalWafV2WebAcl, 'wafv2', lambda client: client.list_web_acls(Scope='REGIONAL')['WebACLs'])
 
     def terminate(self):
         self.client.delete_web_acl(Id=self.id, Name=self.name, LockToken=self.lock_token, Scope='REGIONAL')
@@ -266,8 +266,8 @@ class RegionalWafV2WebAcl(WafV2):
 
 class CloudfrontWafV2WebAcl(WafV2):
     @staticmethod
-    def create(credentials):
-        return DbTerminator._create(credentials, CloudfrontWafV2WebAcl, 'wafv2', lambda client: client.list_web_acls(Scope='CLOUDFRONT')['WebACLs'])
+    def create():
+        return DbTerminator._create(CloudfrontWafV2WebAcl, 'wafv2', lambda client: client.list_web_acls(Scope='CLOUDFRONT')['WebACLs'])
 
     def terminate(self):
         self.client.delete_web_acl(Id=self.id, Name=self.name, LockToken=self.lock_token, Scope='CLOUDFRONT')
@@ -275,9 +275,9 @@ class CloudfrontWafV2WebAcl(WafV2):
 
 class InspectorAssessmentTemplate(DbTerminator):
     @staticmethod
-    def create(credentials):
+    def create():
         return Terminator._create(
-            credentials, InspectorAssessmentTemplate, 'inspector',
+            InspectorAssessmentTemplate, 'inspector',
             lambda client: client.get_paginator('list_assessment_templates').paginate().build_full_result()['assessmentTemplateArns']
         )
 
@@ -295,9 +295,9 @@ class InspectorAssessmentTemplate(DbTerminator):
 
 class InspectorAssessmentTarget(DbTerminator):
     @staticmethod
-    def create(credentials):
+    def create():
         return Terminator._create(
-            credentials, InspectorAssessmentTarget, 'inspector',
+            InspectorAssessmentTarget, 'inspector',
             lambda client: client.get_paginator('list_assessment_targets').paginate().build_full_result()['assessmentTargetArns']
         )
 

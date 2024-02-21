@@ -1,0 +1,41 @@
+- name: Remove AWS resources created to run terminator
+  hosts: localhost
+  gather_facts: false
+
+  collections:
+    - mattclay.aws
+
+  tasks:
+    - name: load config
+      tags: always
+      include_vars:
+        file: config.yml
+
+    - name: get aws account facts
+      tags: always
+      aws_account_facts:
+
+    - name: Delete CloudWatch Event rule
+      tags: schedule
+      amazon.aws.cloudwatchevent_rule:
+        state: absent
+        name: "{{ cloudwatch_event_name }}"
+
+    - name: Delete lambda function
+      tags: lambda
+      amazon.aws.lambda:
+        name: "{{ lambda_name }}"
+        state: absent
+
+    - name: Delete lambda layer
+      tags: lambda
+      amazon.aws.lambda_layer:
+        state: absent
+        name: "{{ lambda_layer_name }}"
+        version: -1
+
+    - name: delete iam role for terminator functions
+      tags: iam
+      amazon.aws.iam_role:
+        name: "{{ iam_role_name }}"
+        state: absent

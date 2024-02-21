@@ -53,7 +53,6 @@ def main():
     with open(config_path) as config_fd:
         config = yaml.load(config_fd, Loader=yaml.BaseLoader)
 
-    test_account_id = config['test_account_id']
     api_name = config['api_name']
 
     account_id = boto3.client('sts').get_caller_identity().get('Account')
@@ -61,7 +60,7 @@ def main():
     if account_id != config['lambda_account_id']:
         sys.exit(f'The terminator must be run from the lambda account: {config["lambda_account_id"]}')
 
-    cleanup(args.stage, check=args.check, force=args.force, api_name=api_name, test_account_id=test_account_id, targets=args.target)
+    cleanup(check=args.check, force=args.force, api_name=api_name, targets=args.target)
 
 
 def parse_args():
@@ -78,11 +77,6 @@ def parse_args():
     parser.add_argument('-v', '--verbose',
                         action='store_true',
                         help='increase logging verbosity')
-
-    parser.add_argument('--stage',
-                        choices=['prod', 'dev'],
-                        required=True,
-                        help='stage to use for database and policy access')
 
     parser.add_argument('--config-file',
                         metavar='config_file',
