@@ -11,7 +11,7 @@
       include_vars:
         file: config.yml
 
-    - name: get aws account facts
+    - name: Get aws account facts
       tags: always
       aws_account_facts:
 
@@ -34,8 +34,15 @@
         name: "{{ lambda_layer_name }}"
         version: -1
 
-    - name: delete iam role for terminator functions
+    - name: Delete iam role for terminator functions
       tags: iam
       amazon.aws.iam_role:
         name: "{{ iam_role_name }}"
         state: absent
+
+    - name: Delete DynamoDB table
+      tags: db
+      community.aws.dynamodb_table:
+        state: absent
+        name: "{{ dynamodb_table_name }}"
+        wait: True

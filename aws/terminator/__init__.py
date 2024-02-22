@@ -40,8 +40,8 @@ def import_plugins() -> None:
         __import__(f'terminator.{import_name}')
 
 
-def cleanup(check: bool, force: bool, api_name: str, targets: typing.Optional[typing.List[str]] = None) -> None:
-    kvs.domain_name = re.sub(r'[^a-zA-Z0-9]+', '_', f'{api_name}-resources')
+def cleanup(check: bool, force: bool, targets: typing.Optional[typing.List[str]] = None) -> None:
+    kvs.domain_name = os.environ.get("DYNAMODB_TABLE_NAME")
     kvs.initialize()
 
     cleanup_test_account(check, force, targets)

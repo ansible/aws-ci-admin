@@ -85,8 +85,9 @@
         role: "{{ iam_role_name }}"
         publish: True
         environment:
-          API_NAME: "{{ api_name }}"
           CLEANUP_AWS_REGION: "{{ aws_region }}"
+          DYNAMODB_TABLE_NAME: "{{ dynamodb_table_name }}"
+          TERMINATE_SMALL_SET: "{{ terminate_small_set | default('true') }}"
         layers:
           - "{{ terminator_requirements_layer.layer.layer_version_arn }}"
       register: terminator_function
