@@ -7,8 +7,8 @@ from terminator import (
 )
 
 
-def terminator_small_set():
-    value = os.environ.get("TERMINATE_SMALL_SET") or "false"
+def check_boolean_value(env_name: str) -> bool:
+    value = os.environ.get(env_name) or "false"
     return value.lower() in ['true', '1', 'yes']
 
 
@@ -18,7 +18,7 @@ def lambda_handler(event, context):
     logger.setLevel(logging.INFO)
 
     targets = []
-    if terminator_small_set():
+    if check_boolean_value("TERMINATE_SMALL_SET"):
         targets = [
             "RdsDbCluster",
             "Ec2Volume",

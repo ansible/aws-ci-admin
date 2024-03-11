@@ -603,7 +603,6 @@ class LaunchConfiguration(Terminator):
     @staticmethod
     def create():
         return Terminator._create(
-            ,
             LaunchConfiguration,
             'autoscaling',
             lambda client: client.describe_launch_configurations()['LaunchConfigurations']
@@ -637,7 +636,6 @@ class LaunchTemplate(Terminator):
     @staticmethod
     def create():
         return Terminator._create(
-            ,
             LaunchTemplate,
             'ec2',
             lambda client: client.describe_launch_templates()['LaunchTemplates']

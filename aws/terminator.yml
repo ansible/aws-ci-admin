@@ -25,6 +25,7 @@
         assume_role_policy_document: "{{ iam_role_policy_document }}"
         managed_policies:
           - "arn:aws:iam::aws:policy/AdministratorAccess"
+        create_instance_profile: false
       register: iam_role_info
     - name: create virtualenv with terminator requirements
       tags: lambda

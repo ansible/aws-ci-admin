@@ -39,10 +39,10 @@ class S3Bucket(Terminator):
             for keys in _paginated_list(self.name):
                 self.client.delete_objects(
                     Bucket=self.name,
-                    Delete=dict(
-                        Objects=[{'Key': k} for k in keys],
-                        Quiet=True,
-                    )
+                    Delete={
+                        "Objects": [{'Key': k} for k in keys],
+                        "Quiet": True,
+                    }
                 )
             self.client.delete_bucket(Bucket=self.name)
 

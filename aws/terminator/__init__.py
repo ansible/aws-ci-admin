@@ -4,7 +4,6 @@ import inspect
 import json
 import logging
 import os
-import re
 import traceback
 import typing
 
@@ -24,11 +23,12 @@ T = typing.TypeVar('T')
 def get_aws_region():
     return os.environ.get("CLEANUP_AWS_REGION") or "us-east-1"
 
+
 def log_exception(message: str, *args, level: int = logging.ERROR) -> None:
-    payload = dict(
-        message=(message % args).strip(),
-        traceback=traceback.format_exc().strip(),
-    )
+    payload = {
+        "message": (message % args).strip(),
+        "traceback": traceback.format_exc().strip(),
+    }
 
     logger.log(level, json.dumps(payload))
 
@@ -44,7 +44,7 @@ def cleanup(check: bool, force: bool, targets: typing.Optional[typing.List[str]]
     kvs.domain_name = os.environ.get("DYNAMODB_TABLE_NAME")
     kvs.initialize()
 
-    cleanup_test_account(check, force, targets)
+    cleanup_resources(check, force, targets)
 
     if not targets or 'Database' in targets:
         cleanup_database(check, force)
@@ -64,10 +64,12 @@ def process_instance(instance: 'Terminator', check: bool, force: bool = False) -
     return status
 
 
-def cleanup_test_account(check: bool, force: bool, targets: typing.Optional[typing.List[str]] = None) -> None:
+def cleanup_resources(check: bool, force: bool, targets: typing.Optional[typing.List[str]] = None) -> None:
 
+    if targets:
+        targets = [t.lower() for t in targets]
     for terminator_type in sorted(get_concrete_subclasses(Terminator), key=lambda value: value.__name__):
-        if targets and terminator_type.__name__ not in targets:
+        if targets and terminator_type.__name__.lower() not in targets:
             continue
 
         # noinspection PyBroadException
@@ -121,6 +123,7 @@ def cleanup_database(check: bool, force: bool) -> None:
 
 def terminate(instance: 'Terminator', check: bool) -> str:
     if check:
+        logger.info("[Running in check mode] Would have terminate the resource '%s'", instance)
         return 'checked'
 
     # noinspection PyBroadException

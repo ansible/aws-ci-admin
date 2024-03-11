@@ -1,8 +1,9 @@
 PYTHON3 ?= python3.7
 
-EXTRA_VARS=ansible_connection=local ansible_python_interpreter=$(shell which python)
-RUN_TEST_POLICY_PLAYBOOK=ansible-playbook -i localhost, -e '$(EXTRA_VARS)' deploy-test-policy.yml $(FLAGS)
-RUN_TERMINATOR_PLAYBOOK=ansible-playbook -i localhost, -e '$(EXTRA_VARS)' terminator.yml $(FLAGS)
+EXTRA_VARS=ansible_python_interpreter=$(shell which python)
+RUN_TEST_POLICY_PLAYBOOK=ansible-playbook -e '$(EXTRA_VARS)' deploy-test-policy.yml $(FLAGS)
+RUN_TERMINATOR_ACTIVATE=ansible-playbook -e '$(EXTRA_VARS)' terminator.yml $(FLAGS)
+RUN_TERMINATOR_DEACTIVATE=ansible-playbook -e '$(EXTRA_VARS)' terminator_clean.yml $(FLAGS)
 
 VAULT_ARGS := $(if $(ANSIBLE_VAULT_PASSWORD_FILE),,--ask-vault-pass)
 
@@ -12,21 +13,21 @@ default:
 	@echo
 	@echo "USAGE: make terminator|terminator_lambda AWS_PROFILE=lambda [FLAGS=flags]"
 	@echo
-	@echo ">>> Deploy to the Test Account"
-	@echo
-	@echo "USAGE: make test_policy AWS_PROFILE=test STAGE=dev|prod [FLAGS=flags]"
-	@echo
 	@echo ">>> Running Tests"
 	@echo
 	@echo "USAGE: make test|test-requirements|yamllint|pycodestyle|pylint [PYTHON3=$(PYTHON3)]"
 
 .PHONY: terminator
 terminator:
-	$(RUN_TERMINATOR_PLAYBOOK)
+	$(RUN_TERMINATOR_ACTIVATE)
+
+.PHONY: terminator_clean
+terminator_clean:
+	$(RUN_TERMINATOR_DEACTIVATE)
 
 .PHONY: terminator_lambda
 terminator_lambda:
-	$(RUN_TERMINATOR_PLAYBOOK) --tags=lambda
+	$(RUN_TERMINATOR_ACTIVATE) --tags=lambda
 
 .PHONY: test_policy
 test_policy:

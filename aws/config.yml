@@ -4,7 +4,7 @@ api_name: 'terminator-cleanup'
 # The AWS Region that tests will be run in
 aws_region: 'us-east-1'
 
-iam_role_name: "{{ api_name }}-terminator"
+iam_role_name: "{{ api_name }}"
 iam_role_policy_document:
   Version: "2012-10-17"
   Statement:
@@ -12,9 +12,9 @@ iam_role_policy_document:
     Principal:
       Service: "lambda.amazonaws.com"
     Effect: "Allow"
-iam_policy_name: "{{ api_name }}-terminator-admin"
-lambda_layer_name: "{{ api_name }}-terminator-requirements"
-lambda_name: "{{ api_name }}-terminator"
+iam_policy_name: "{{ api_name }}-admin-policy"
+lambda_layer_name: "{{ api_name }}-lambda-requirements"
+lambda_name: "{{ api_name }}-function"
 lambda_alias_name: "prod"
-cloudwatch_event_name: "{{ api_name }}-terminator"
+cloudwatch_event_name: "{{ api_name }}-event"
 dynamodb_table_name: "{{ api_name | regex_replace('[^a-zA-Z0-9]+', '_') }}_resources"
