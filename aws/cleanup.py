@@ -88,7 +88,8 @@ def parse_args():
                         help='The AWS profile')
 
     parser.add_argument('--table-name',
-                        required=True,
+                        required=False,
+                        default="terminator_cleanup_resources",
                         help='The DynamoDB table name use to track resources lifetime')
 
     parser.add_argument('-c', '--check',

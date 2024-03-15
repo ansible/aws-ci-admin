@@ -12,7 +12,7 @@ iam_role_policy_document:
     Principal:
       Service: "lambda.amazonaws.com"
     Effect: "Allow"
-iam_policy_name: "{{ api_name }}-admin-policy"
+iam_managed_policy_name: "{{ api_name }}-policy"
 lambda_layer_name: "{{ api_name }}-lambda-requirements"
 lambda_name: "{{ api_name }}-function"
 lambda_alias_name: "prod"

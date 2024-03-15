@@ -16,6 +16,51 @@
     - name: show configuration
       tags: always
       debug: msg="aws_region={{ aws_region }}, aws_account_id={{ aws_account_id }}"
+    - name: init managed policies
+      tags: always
+      set_fact:
+        managed_policies: []
+    - name: create managed policy for a small set of resources
+      block:
+        - name: create managed policy
+          tags: iam
+          amazon.aws.iam_managed_policy:
+            name: "{{ iam_managed_policy_name }}"
+            description: "A managed policy to run AWS terminator with api name '{{ api_name }}'"
+            policy: "{{ lookup('file', 'smallset-policy.yaml') | from_yaml | to_json }}"
+            state: present
+          register: create_policy
+        - name: Set managed policies list
+          tags: iam
+          set_fact:
+            managed_policies: [ "{{ create_policy.policy.arn }}" ]
+      when: terminate_small_set | default('true') | bool
+    - block:
+        - name: Create a list of policy file names without the path or extension
+          tags: iam
+          ansible.builtin.find:
+            paths: policy
+            patterns: ['*.yaml', '*.yml']
+          register: policies
+        - name: Check policies do not exceed AWS size limits
+          tags: iam
+          assert:
+            that:
+              - "{{ lookup('template', item) | from_yaml | to_json |length < 6144 }}"
+          with_items: "{{ policies.files | map(attribute='path') | list }}"
+        - name: create iam managed policy for test permission groups
+          tags: iam
+          iam_managed_policy:
+            policy_name: '{{ item | basename | regex_replace("^(.*)\.(yaml|yml)$", api_name + "-\1") }}'
+            state: present
+            policy_description: '{{ item | basename | regex_replace("^(.*)\.(yaml|yml)$", api_name + "-\1") }} policy for terminator cleanup'
+            policy: "{{ lookup('template', item) | from_yaml | to_json }}"
+          with_items: "{{ policies.files | map(attribute='path') | list }}"
+          register: create_policies
+        - name: create list of managed policies arn
+          set_fact:
+            managed_policies: "{{ create_policies.results | map(attribute='policy.arn') | list }}"
+      when: not (terminate_small_set | default('true') | bool)
     - name: create iam role for terminator functions
       tags: iam
       amazon.aws.iam_role:
@@ -23,8 +68,7 @@
         description: "iam role for terminator functions"
         state: present
         assume_role_policy_document: "{{ iam_role_policy_document }}"
-        managed_policies:
-          - "arn:aws:iam::aws:policy/AdministratorAccess"
+        managed_policies: "{{ managed_policies }}"
         create_instance_profile: false
       register: iam_role_info
     - name: create virtualenv with terminator requirements
@@ -114,5 +158,5 @@
       lambda_policy:
         region: "{{ aws_region }}"
         function_name: "{{ terminator_function.meta.function_name }}"
-        source_arn: "{{ event.meta.rule_arn }}"
+        source_arn: "arn:aws:events:{{ aws_region }}:{{ aws_account_id }}:rule/{{ cloudwatch_event_name }}"
         principal_service: events.amazonaws.com
