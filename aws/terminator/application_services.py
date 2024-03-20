@@ -6,11 +6,11 @@ from . import DbTerminator, Terminator
 
 class Cloudformation(Terminator):
     @staticmethod
-    def create(credentials):
+    def create():
         def paginate_stacks(client):
             return client.get_paginator('describe_stacks').paginate().build_full_result()['Stacks']
 
-        return Terminator._create(credentials, Cloudformation, 'cloudformation', paginate_stacks)
+        return Terminator._create(Cloudformation, 'cloudformation', paginate_stacks)
 
     @property
     def created_time(self):
@@ -27,8 +27,8 @@ class Cloudformation(Terminator):
 
 class CloudWatchLogGroup(Terminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, CloudWatchLogGroup, 'logs', lambda client: client.describe_log_groups()['logGroups'])
+    def create():
+        return Terminator._create(CloudWatchLogGroup, 'logs', lambda client: client.describe_log_groups()['logGroups'])
 
     @property
     def name(self):
@@ -47,7 +47,7 @@ class CloudWatchLogGroup(Terminator):
 class CodeBuild(Terminator):
 
     @staticmethod
-    def create(credentials):
+    def create():
         def paginate_projects(client):
             project_names = client.get_paginator(
                 'list_projects').paginate().build_full_result()['projects']
@@ -61,7 +61,7 @@ class CodeBuild(Terminator):
                 {'name': p['name'], 'created': p['created']} for p in projects]
 
         return Terminator._create(
-            credentials, CodeBuild, 'codebuild',
+            CodeBuild, 'codebuild',
             paginate_projects)
 
     @property
@@ -82,11 +82,11 @@ class CodeBuild(Terminator):
 
 class CodeCommitRepository(DbTerminator):
     @staticmethod
-    def create(credentials):
+    def create():
         def paginate_repositories(client):
             return client.get_paginator('list_repositories').paginate().build_full_result()['repositories']
 
-        return Terminator._create(credentials, CodeCommitRepository, 'codecommit', paginate_repositories)
+        return Terminator._create(CodeCommitRepository, 'codecommit', paginate_repositories)
 
     @property
     def id(self):
@@ -103,9 +103,9 @@ class CodeCommitRepository(DbTerminator):
 class CodePipeline(Terminator):
 
     @staticmethod
-    def create(credentials):
+    def create():
         return Terminator._create(
-            credentials, CodePipeline, 'codepipeline',
+            CodePipeline, 'codepipeline',
             lambda client: client.list_pipelines().get('pipelines', ()))
 
     @property
@@ -126,8 +126,8 @@ class CodePipeline(Terminator):
 
 class Efs(Terminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Efs, 'efs', lambda client: client.describe_file_systems()['FileSystems'])
+    def create():
+        return Terminator._create(Efs, 'efs', lambda client: client.describe_file_systems()['FileSystems'])
 
     @property
     def id(self):
@@ -150,7 +150,7 @@ class Efs(Terminator):
 
 class KinesisStream(Terminator):
     @staticmethod
-    def create(credentials):
+    def create():
         def paginate_streams(client):
             names = client.get_paginator('list_streams').paginate(
                 PaginationConfig={
@@ -165,7 +165,7 @@ class KinesisStream(Terminator):
                 client.describe_stream(StreamName=n)['StreamDescription'] for n in names
             ]
 
-        return Terminator._create(credentials, KinesisStream, 'kinesis', paginate_streams)
+        return Terminator._create(KinesisStream, 'kinesis', paginate_streams)
 
     @property
     def created_time(self):
@@ -192,8 +192,8 @@ class KinesisStream(Terminator):
 
 class SesIdentity(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, SesIdentity, 'ses',
+    def create():
+        return Terminator._create(SesIdentity, 'ses',
                                   lambda client: client.list_identities()['Identities'])
 
     @property
@@ -210,7 +210,7 @@ class SesIdentity(DbTerminator):
 
 class SesReceiptRuleSet(Terminator):
     @staticmethod
-    def create(credentials):
+    def create():
         def _paginate_receipt_rule_sets(client):
             results = client.list_receipt_rule_sets()
             next_token = results.pop('NextToken', None)
@@ -222,7 +222,7 @@ class SesReceiptRuleSet(Terminator):
                 results['RuleSets'].append(next_rule_sets['RuleSets'])
                 next_token = next_rule_sets.pop('NextToken', None)
             return results['RuleSets']
-        return Terminator._create(credentials, SesReceiptRuleSet, 'ses', _paginate_receipt_rule_sets)
+        return Terminator._create(SesReceiptRuleSet, 'ses', _paginate_receipt_rule_sets)
 
     @property
     def name(self):
@@ -238,8 +238,8 @@ class SesReceiptRuleSet(Terminator):
 
 class Sns(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Sns, 'sns', lambda client: client.list_topics()['Topics'])
+    def create():
+        return Terminator._create(Sns, 'sns', lambda client: client.list_topics()['Topics'])
 
     @property
     def id(self):
@@ -255,8 +255,8 @@ class Sns(DbTerminator):
 
 class SqsQueue(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, SqsQueue, 'sqs', lambda client: client.list_queues().get('QueueUrls', []))
+    def create():
+        return Terminator._create(SqsQueue, 'sqs', lambda client: client.list_queues().get('QueueUrls', []))
 
     @property
     def id(self):
@@ -272,8 +272,8 @@ class SqsQueue(DbTerminator):
 
 class SsmParameter(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, SsmParameter, 'ssm', lambda client: client.describe_parameters()['Parameters'])
+    def create():
+        return Terminator._create(SsmParameter, 'ssm', lambda client: client.describe_parameters()['Parameters'])
 
     @property
     def id(self):
@@ -290,14 +290,14 @@ class SsmParameter(DbTerminator):
 class DynamoDb(DbTerminator):
 
     @staticmethod
-    def create(credentials):
+    def create():
 
         def get_tables(client):
             table_names = client.get_paginator(
                 'list_tables').paginate().build_full_result().get('TableNames', ())
             return table_names
 
-        return Terminator._create(credentials, DynamoDb, 'dynamodb', get_tables)
+        return Terminator._create(DynamoDb, 'dynamodb', get_tables)
 
     @property
     def id(self):
@@ -313,14 +313,14 @@ class DynamoDb(DbTerminator):
 
 class StepFunctions(Terminator):
     @staticmethod
-    def create(credentials):
+    def create():
 
         def get_state_machines(client):
             state_machines = client.get_paginator(
                 'list_state_machines').paginate().build_full_result().get('stateMachines', [])
             return state_machines
 
-        return Terminator._create(credentials, StepFunctions, 'stepfunctions', get_state_machines)
+        return Terminator._create(StepFunctions, 'stepfunctions', get_state_machines)
 
     @property
     def created_time(self):
@@ -336,8 +336,8 @@ class StepFunctions(Terminator):
 
 class CloudWatchAlarm(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, CloudWatchAlarm, 'cloudwatch', lambda client: client.describe_alarms()['MetricAlarms'])
+    def create():
+        return Terminator._create(CloudWatchAlarm, 'cloudwatch', lambda client: client.describe_alarms()['MetricAlarms'])
 
     @property
     def name(self):
@@ -345,3 +345,77 @@ class CloudWatchAlarm(DbTerminator):
 
     def terminate(self):
         self.client.delete_alarms(AlarmNames=[self.name])
+
+
+class SsmDocument(Terminator):
+    @staticmethod
+    def create():
+        def get_ssm_documents(client):
+            ssm_documents = client.get_paginator(
+                'list_documents').paginate(Filters=[{'Key': 'Owner', 'Values': ['self']}]).build_full_result().get('DocumentIdentifiers', [])
+            return ssm_documents
+
+        return Terminator._create(SsmDocument, 'ssm', get_ssm_documents)
+
+    @property
+    def created_time(self):
+        return self.instance['CreatedDate']
+
+    @property
+    def name(self):
+        return self.instance['Name']
+
+    def terminate(self):
+        self.client.delete_document(Name=self.name)
+
+
+class SsmSession(Terminator):
+    @staticmethod
+    def create():
+        def get_ssm_sessions(client):
+            ssm_sessions = client.get_paginator(
+                'describe_sessions').paginate(State='Active').build_full_result().get('Sessions', [])
+            return ssm_sessions
+
+        return Terminator._create(SsmSession, 'ssm', get_ssm_sessions)
+
+    @property
+    def created_time(self):
+        return self.instance['StartDate']
+
+    @property
+    def name(self):
+        return self.instance['SessionId']
+
+    @property
+    def id(self):
+        return self.instance['SessionId']
+
+    def terminate(self):
+        self.client.terminate_session(SessionId=self.name)
+
+
+class MqBroker(Terminator):
+    @staticmethod
+    def create():
+        def get_mq_brokers(client):
+            mq_brokers = client.get_paginator(
+                'list_brokers').paginate().build_full_result().get('BrokerSummaries', [])
+            return mq_brokers
+
+        return Terminator._create(MqBroker, 'mq', get_mq_brokers)
+
+    @property
+    def created_time(self):
+        return self.instance['Created']
+
+    @property
+    def name(self):
+        return self.instance['BrokerName']
+
+    @property
+    def id(self):
+        return self.instance['BrokerId']
+
+    def terminate(self):
+        self.client.delete_broker(BrokerId=self.id)

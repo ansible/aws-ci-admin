@@ -1,13 +1,13 @@
 # Contributor process
 
-[This repository](https://github.com/mattclay/aws-terminator) is used by [Ansible](https://github.com/ansible/ansible) to deploy policies for AWS integration tests.
+[This repository](https://github.com/ansible/aws-ci-admin) is used by [Ansible](https://github.com/ansible/ansible) to deploy policies for AWS integration tests.
 
 To enable new integration tests for the CI account, you can start the process by opening a pull request here.
 
 There are two things you may need to do:
-1. Update the permissions in the [policy directory](https://github.com/mattclay/aws-terminator/tree/master/aws/policy) with those needed to run your integration tests (policy groups are defined below). Check the existing policies to avoid adding duplicates.
+1. Update the permissions in the [policy directory](https://github.com/ansible/aws-ci-admin/tree/main/aws/policy) with those needed to run your integration tests (policy groups are defined below). Check the existing policies to avoid adding duplicates.
    The [AWS module developer guidelines](https://docs.ansible.com/ansible/devel/dev_guide/platforms/aws_guidelines.html#aws-permissions-for-integration-tests) contains some tips on finding the minimum IAM policy needed for running the integration tests.
-2. Add a terminator class in the corresponding file in the [terminator directory](https://github.com/mattclay/aws-terminator/tree/master/aws/terminator) if you are adding permissions to create a new type of AWS resource. Skip this step and submit your pull request if you are only adding permissions to modify resources that are already supported.
+2. Add a terminator class in the corresponding file in the [terminator directory](https://github.com/ansible/aws-ci-admin/tree/main/aws/terminator) if you are adding permissions to create a new type of AWS resource. Skip this step and submit your pull request if you are only adding permissions to modify resources that are already supported.
 
 The rest of this section is about creating and testing your terminator class.
 
@@ -64,23 +64,29 @@ The `terminate` method should use self.client to delete the resource.
         self.client.terminate_instances(InstanceIds=[self.id])
 ```
 
-To test the terminator class with your own account you can use the [cleanup.py](https://github.com/mattclay/aws-terminator/blob/master/aws/cleanup.py) script.
+To test the terminator class with your own account you can use the [cleanup.py](https://github.com/ansible/aws-ci-admin/blob/main/aws/cleanup.py) script.
 
 Warning: Always use the --check (or -c) flag and the --target flag to avoid accidentally deleting wanted resources.
 It is safest to use `cleanup.py` in an empty/dev account.
 
 To start using `cleanup.py` you will need to:
 * Use Python 3.7+
-* Modify config.yml to use your own accounts. These can be the same account if you're just using `cleanup.py`.
-  If you use two separate accounts, `lambda_account_id` is the account of the profile that will assume the IAM role in the `test_account_id`. The `test_account_id` is where the terminator class(es) will locate/remove resources.
-* Create a role called `ansible-core-ci-test-dev` that your AWS profile can assume. Give this role the permissions required by the terminator class you are testing.
-* Set the environment variable `AWS_PROFILE` with the profile you want to use.
+* Install required python libraries using
+
+      cd aws && pip install -r requirements.txt
+
 * Run `cleanup.py` using the class name as the target to locate the resources in us-east-1:
 
-      python cleanup.py --stage dev --target Ec2Instance -v -c
-      cleanup     : DEBUG    located Ec2Instance: count=2
-      cleanup     : DEBUG    ignored Ec2Instance: name=, id=i-0c18f88091e78898e age=0 days, 0:05:32, stale=False
-      cleanup     : DEBUG    checked Ec2Instance: name=, id=i-0630e2ba640d7dbf1 age=1 days, 20:49:03, stale=True
+      python ./cleanup.py --check --region us-east-2 --profile ansible --table-name ansible-test-0403
+      cleanup     : DEBUG    located Ec2Volume: count=4
+      cleanup     : INFO     [Running in check mode] Would have terminate the resource 'Ec2Volume: name=None, id=vol-06376869027e814e7 age=1125 days, 2:49:05.959000, stale=True'
+      cleanup     : INFO     checked Ec2Volume: name=None, id=vol-06376869027e814e7 age=1125 days, 2:49:05.959000, stale=True
+      cleanup     : INFO     [Running in check mode] Would have terminate the resource 'Ec2Volume: name=None, id=vol-0174efd26e169da8f age=530 days, 2:36:57.148000, stale=True'
+      cleanup     : INFO     checked Ec2Volume: name=None, id=vol-0174efd26e169da8f age=530 days, 2:36:57.148000, stale=True
+      cleanup     : INFO     skipped Ec2Volume: name=np0004531895, id=vol-0df9b312014ddf271 age=0:13:58.203000, stale=False
+      cleanup     : INFO     [Running in check mode] Would have terminate the resource 'Ec2Volume: name=hebailey-test-bastion, id=vol-041d2eaa4ffdd4c45 age=140 days, 2:25:00.608000, stale=True'
+      cleanup     : INFO     checked Ec2Volume: name=hebailey-test-bastion, id=vol-041d2eaa4ffdd4c45 age=140 days, 2:25:00.608000, stale=True
+
 
 * The class property `age_limit` determines when a resource becomes stale. This is 20 minutes by default. Once a resource is stale, the terminator can delete it. Use check mode (-c or --check) to see what your class would delete without actually removing it.
 * Once a resource is stale you can test that it can be cleaned up by removing the check mode flag.
@@ -89,79 +95,26 @@ To start using `cleanup.py` you will need to:
 
 After you have tested that your terminator class can be used by `cleanup.py`, submit your pull request. A core developer will review and deploy your changes as outlined below.
 
-## IAM Policy Organization
-
-### Structure
-
-Policy docs are in `aws/policy/{group}.yaml`, arranged by the test group.
-
-### Policy Groups
-- Application Services: CloudFormation, SQS, SNS, SES
-- Application Security: Inspector, WAF, etc
-- Data Services: Glacier, Glue, Redshift, RDS, etc
-- Compute: Autoscaling, EC2, ELBs, etc
-- Networking: VPC, ACLs, route tables, NAT Gateways, IGW/VGW, security groups, etc
-- PAAS: ECR, EKR, Lambda, etc
-- Security Services: IAM, KMS, STS, etc
-- Storage Services: S3, etc
-
-### IAM Elements
-
-Policies should generally use the least permissive Actions, Resouces, and Conditions possible. However, there is also a need to prevent policies from exceeding the AWS maximum 6144 characters per policy and 10 policies per account. To help with this wildcards are generally permitted for `Describe*` and `List*` actions for non-security related services.  For example, `ec2:Describe*` is permitted.
 
 # Deploying to AWS
-Deploying to AWS is done using an Ansible playbook, which can be easily run with make using the provided Makefile.
 
-## Environment Variables
+Deploying to AWS is done using an Ansible playbook [terminator.yml](https://github.com/ansible/aws-ci-admin/blob/main/aws/terminator.yml), which can be easily run with make using the provided Makefile.
 
-The playbook requires the following environment variables to be set:
+Here is an example on how to delete resources from the AWS region 'us-east-2'
 
-- `AWS_REGION` - The recommended region is `us-east-1` as that is where Shippable instances run.
-- `STAGE` - This must be either `dev` or `prod`.
+```shell
+EXTRA_VARS=ansible_python_interpreter=$(shell which python) aws_region=us-east-2 make terminator
+```
 
-## Deployment Process
+By default the terminator will run on a small set of resources (`terminate_small_set=true`).
+To run the terminator on all created resources use the following: 
 
-Initial setup can be handled by an administrator, with further updates to the deployment by a power user.
+```shell
+EXTRA_VARS=ansible_python_interpreter=$(shell which python) terminate_small_set=false aws_region=us-east-2 make terminator
+```
 
-### Administrator
+To deactivate the terminator on the AWS account, use the following command:
 
-An administrator can deploy the IAM roles and policies with `make terminator`.
-
-### Power User
-
-A power user can deploy everything else with `make terminator_lambda`.
-
-This user should have the following AWS Managed Policies applied:
-
-- IAMReadOnlyAccess
-- PowerUserAccess
-
-### Steps to update permissions and terminator for AWS pull requests
-
-Use Python 2 (Python 3 not fully supported yet)
-
-Modify IAM permissions:
-  - update the appropriate test policy in the policy directory (policy groups are defined below)
-  - export AWS_PROFILE=youraworksuser
-  - assume arn:aws:iam::966509639900:role/administrator
-  - export the sts credentials and unset AWS_PROFILE
-  - deploy permissions to dev running `make test_policy STAGE=dev`
-
-Check the permissions by running the integration tests:
-  - make sure there is no test/integration/cloud-config-aws.yml (will override CI credentials)
-  - make sure CI key is in ~/.ansible-core-ci.key
-  - run tests with `ansible-test integration [module] --remote-stage dev --docker default -v`
-
-If tests create a resource:
-  - add a new class for the resource in the corresponding file in the terminator directory (use Terminator base class
-    if resources have a created time, DbTerminator otherwise)
-  - test terminator with `python cleanup.py --stage dev -c -v`, make sure modified terminator resource class shows up
-    in the output
-
-Make a pull request to CI
-
-If tests pass and CI PR is ready to merge:
-  - deploy to prod with `make test_policy STAGE=prod`
-
-If there are modifications to the terminator:
-  - after deploying to dev and prod run `make terminator_lambda` using aworks user credentials
+```shell
+EXTRA_VARS=ansible_python_interpreter=$(shell which python) terminate_small_set=false aws_region=us-east-2 make terminator_clean
+```

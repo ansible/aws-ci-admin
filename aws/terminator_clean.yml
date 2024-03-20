@@ -1,0 +1,70 @@
+- name: Remove AWS resources created to run terminator
+  hosts: localhost
+  gather_facts: false
+
+  collections:
+    - mattclay.aws
+
+  tasks:
+    - name: load config
+      tags: always
+      include_vars:
+        file: config.yml
+
+    - name: Get aws account facts
+      tags: always
+      aws_account_facts:
+
+    - name: Delete CloudWatch Event rule
+      tags: schedule
+      amazon.aws.cloudwatchevent_rule:
+        state: absent
+        name: "{{ cloudwatch_event_name }}"
+        region: "{{ aws_region }}"
+
+    - name: Delete lambda function
+      tags: lambda
+      amazon.aws.lambda:
+        name: "{{ lambda_name }}"
+        region: "{{ aws_region }}"
+        state: absent
+
+    - name: Delete lambda layer
+      tags: lambda
+      amazon.aws.lambda_layer:
+        state: absent
+        name: "{{ lambda_layer_name }}"
+        region: "{{ aws_region }}"
+        version: -1
+
+    - name: Delete iam role for terminator functions
+      tags: iam
+      amazon.aws.iam_role:
+        name: "{{ iam_role_name }}"
+        state: absent
+
+    - name: Create a list of policy file names without the path or extension
+      tags: iam
+      ansible.builtin.find:
+        paths: policy
+        patterns: ['*.yaml', '*.yml']
+      register: policies
+
+    - name: Create managed policies list
+      tags: iam
+      set_fact:
+        managed_policies: '{{ policies.files | map(attribute="path") | list | map("basename") | map("regex_replace", "^(.*)\.(yaml|yml)$", api_name + "-\1") | list }}'
+
+    - name: Delete managed policy
+      tags: iam
+      amazon.aws.iam_managed_policy:
+        name: "{{ item }}"
+        state: absent
+      with_items: "{{ managed_policies + [iam_managed_policy_name] }}"
+
+    - name: Delete DynamoDB table
+      tags: db
+      community.aws.dynamodb_table:
+        state: absent
+        name: "{{ dynamodb_table_name }}"
+        wait: True

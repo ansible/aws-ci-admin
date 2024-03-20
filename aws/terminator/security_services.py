@@ -1,3 +1,5 @@
+import datetime
+
 import botocore
 import botocore.exceptions
 
@@ -6,8 +8,8 @@ from . import DbTerminator, Terminator
 
 class IamRole(Terminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, IamRole, 'iam', lambda client: client.list_roles()['Roles'])
+    def create():
+        return Terminator._create(IamRole, 'iam', lambda client: client.list_roles()['Roles'])
 
     @property
     def id(self):
@@ -43,8 +45,8 @@ class IamRole(Terminator):
 
 class IamInstanceProfile(Terminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, IamInstanceProfile, 'iam', lambda client: client.list_instance_profiles()['InstanceProfiles'])
+    def create():
+        return Terminator._create(IamInstanceProfile, 'iam', lambda client: client.list_instance_profiles()['InstanceProfiles'])
 
     @property
     def id(self):
@@ -71,8 +73,8 @@ class IamInstanceProfile(Terminator):
 
 class IamServerCertificate(Terminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, IamServerCertificate, 'iam', lambda client: client.list_server_certificates()['ServerCertificateMetadataList'])
+    def create():
+        return Terminator._create(IamServerCertificate, 'iam', lambda client: client.list_server_certificates()['ServerCertificateMetadataList'])
 
     @property
     def id(self):
@@ -99,9 +101,9 @@ class ACMCertificate(DbTerminator):
     # We need to be able to delete anyway, so use DbTerminator
     # https://github.com/ansible/ansible/issues/67788
     @staticmethod
-    def create(credentials):
+    def create():
         return Terminator._create(
-            credentials, ACMCertificate, 'acm',
+            ACMCertificate, 'acm',
             lambda client: client.get_paginator('list_certificates').paginate().build_full_result()['CertificateSummaryList']
         )
 
@@ -119,9 +121,9 @@ class ACMCertificate(DbTerminator):
 
 class IAMSamlProvider(Terminator):
     @staticmethod
-    def create(credentials):
+    def create():
         return Terminator._create(
-            credentials, IAMSamlProvider, 'iam',
+            IAMSamlProvider, 'iam',
             lambda client: client.list_saml_providers()['SAMLProviderList']
         )
 
@@ -147,7 +149,7 @@ class IAMSamlProvider(Terminator):
 
 class KMSKey(Terminator):
     @staticmethod
-    def create(credentials):
+    def create():
         def get_paginated_keys(client):
             return client.get_paginator('list_keys').paginate().build_full_result()['Keys']
 
@@ -168,7 +170,7 @@ class KMSKey(Terminator):
                     detailed_keys.append(metadata)
             return detailed_keys
 
-        return Terminator._create(credentials, KMSKey, 'kms', get_detailed_keys)
+        return Terminator._create(KMSKey, 'kms', get_detailed_keys)
 
     @property
     def ignore(self):
@@ -200,8 +202,8 @@ class KMSKey(Terminator):
 
 class Secret(Terminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Secret, 'secretsmanager', lambda client: client.list_secrets()['SecretList'])
+    def create():
+        return Terminator._create(Secret, 'secretsmanager', lambda client: client.list_secrets()['SecretList'])
 
     @property
     def id(self):
@@ -219,5 +221,17 @@ class Secret(Terminator):
     def created_time(self):
         return self.instance['CreatedDate']
 
+    @property
+    def age_limit(self):
+        return datetime.timedelta(minutes=30)
+
     def terminate(self):
-        self.client.delete_secret(SecretId=self.name, RecoveryWindowInDays=7)
+        try:
+            self.client.delete_secret(SecretId=self.name, RecoveryWindowInDays=7)
+        except botocore.exceptions.ClientError as ex:
+            if ex.response['Error']['Code'] == "InvalidParameterException":
+                region_list = []
+                for region in self.client.describe_secret(SecretId=self.name).get('ReplicationStatus', ""):
+                    region_list.append(region.get('Region', ""))
+                self.client.remove_regions_from_replication(SecretId=self.name, RemoveReplicaRegions=region_list)
+                self.client.delete_secret(SecretId=self.name, RecoveryWindowInDays=7)

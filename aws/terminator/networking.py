@@ -1,12 +1,12 @@
 import datetime
-
+import botocore
 from . import DbTerminator, Terminator, get_tag_dict_from_tag_list
 
 
 class Route53HostedZone(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Route53HostedZone, 'route53', lambda client: client.list_hosted_zones()['HostedZones'])
+    def create():
+        return Terminator._create(Route53HostedZone, 'route53', lambda client: client.list_hosted_zones()['HostedZones'])
 
     @property
     def id(self):
@@ -37,8 +37,8 @@ class Route53HostedZone(DbTerminator):
 
 class Route53HealthCheck(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Route53HealthCheck, 'route53', lambda client: client.list_health_checks()['HealthChecks'])
+    def create():
+        return Terminator._create(Route53HealthCheck, 'route53', lambda client: client.list_health_checks()['HealthChecks'])
 
     @property
     def id(self):
@@ -54,8 +54,8 @@ class Route53HealthCheck(DbTerminator):
 
 class Ec2Eip(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Ec2Eip, 'ec2', lambda client: client.describe_addresses()['Addresses'])
+    def create():
+        return Terminator._create(Ec2Eip, 'ec2', lambda client: client.describe_addresses()['Addresses'])
 
     @property
     def id(self):
@@ -71,8 +71,8 @@ class Ec2Eip(DbTerminator):
 
 class Ec2CustomerGateway(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Ec2CustomerGateway, 'ec2', lambda client: client.describe_customer_gateways()['CustomerGateways'])
+    def create():
+        return Terminator._create(Ec2CustomerGateway, 'ec2', lambda client: client.describe_customer_gateways()['CustomerGateways'])
 
     @property
     def age_limit(self):
@@ -92,8 +92,8 @@ class Ec2CustomerGateway(DbTerminator):
 
 class DhcpOptionsSet(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, DhcpOptionsSet, 'ec2', lambda client: client.describe_dhcp_options()['DhcpOptions'])
+    def create():
+        return Terminator._create(DhcpOptionsSet, 'ec2', lambda client: client.describe_dhcp_options()['DhcpOptions'])
 
     @property
     def id(self):
@@ -113,8 +113,8 @@ class DhcpOptionsSet(DbTerminator):
 
 class Ec2Subnet(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Ec2Subnet, 'ec2', lambda client: client.describe_subnets()['Subnets'])
+    def create():
+        return Terminator._create(Ec2Subnet, 'ec2', lambda client: client.describe_subnets()['Subnets'])
 
     @property
     def age_limit(self):
@@ -139,11 +139,11 @@ class Ec2Subnet(DbTerminator):
 class Ec2InternetGateway(DbTerminator):
     def __init__(self, client, instance):
         self._ignore = None
-        super(Ec2InternetGateway, self).__init__(client, instance)
+        super().__init__(client, instance)
 
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Ec2InternetGateway, 'ec2', lambda client: client.describe_internet_gateways()['InternetGateways'])
+    def create():
+        return Terminator._create(Ec2InternetGateway, 'ec2', lambda client: client.describe_internet_gateways()['InternetGateways'])
 
     @property
     def age_limit(self):
@@ -161,7 +161,7 @@ class Ec2InternetGateway(DbTerminator):
     def ignore(self):
         if self._ignore is None:
             attachments = self._find_vpc_attachments()
-            self._ignore = any([self.is_vpc_default(attachment_id) for attachment_id in attachments])
+            self._ignore = any(self.is_vpc_default(attachment_id) for attachment_id in attachments)
         return self._ignore
 
     def _find_vpc_attachments(self):
@@ -176,8 +176,8 @@ class Ec2InternetGateway(DbTerminator):
 
 class Ec2EgressInternetGateway(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Ec2EgressInternetGateway, 'ec2',
+    def create():
+        return Terminator._create(Ec2EgressInternetGateway, 'ec2',
                                   lambda client: client.describe_egress_only_internet_gateways()['EgressOnlyInternetGateways'])
 
     @property
@@ -194,8 +194,8 @@ class Ec2EgressInternetGateway(DbTerminator):
 
 class Ec2NatGateway(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Ec2NatGateway, 'ec2', lambda client: client.describe_nat_gateways()['NatGateways'])
+    def create():
+        return Terminator._create(Ec2NatGateway, 'ec2', lambda client: client.describe_nat_gateways()['NatGateways'])
 
     @property
     def id(self):
@@ -211,8 +211,8 @@ class Ec2NatGateway(DbTerminator):
 
 class Ec2NetworkAcl(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Ec2NetworkAcl, 'ec2', lambda client: client.describe_network_acls()['NetworkAcls'])
+    def create():
+        return Terminator._create(Ec2NetworkAcl, 'ec2', lambda client: client.describe_network_acls()['NetworkAcls'])
 
     @property
     def id(self):
@@ -232,8 +232,8 @@ class Ec2NetworkAcl(DbTerminator):
 
 class Ec2Eni(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Ec2Eni, 'ec2', lambda client: client.describe_network_interfaces()['NetworkInterfaces'])
+    def create():
+        return Terminator._create(Ec2Eni, 'ec2', lambda client: client.describe_network_interfaces()['NetworkInterfaces'])
 
     @property
     def age_limit(self):
@@ -253,8 +253,8 @@ class Ec2Eni(DbTerminator):
 
 class Ec2RouteTable(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Ec2RouteTable, 'ec2', lambda client: client.describe_route_tables()['RouteTables'])
+    def create():
+        return Terminator._create(Ec2RouteTable, 'ec2', lambda client: client.describe_route_tables()['RouteTables'])
 
     @property
     def name(self):
@@ -269,7 +269,7 @@ class Ec2RouteTable(DbTerminator):
         # The main route table of a VPC cannot be deleted.
         # See: https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html
         # They will be removed when the VPC is deleted.
-        return any([association['Main'] for association in self.instance.get('Associations', [])])
+        return any(association['Main'] for association in self.instance.get('Associations', []))
 
     def terminate(self):
         for association in self.instance.get('Associations', []):
@@ -280,8 +280,8 @@ class Ec2RouteTable(DbTerminator):
 
 class Ec2VpcEndpoint(Terminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Ec2VpcEndpoint, 'ec2', lambda client: client.describe_vpc_endpoints()['VpcEndpoints'])
+    def create():
+        return Terminator._create(Ec2VpcEndpoint, 'ec2', lambda client: client.describe_vpc_endpoints()['VpcEndpoints'])
 
     @property
     def id(self):
@@ -301,8 +301,8 @@ class Ec2VpcEndpoint(Terminator):
 
 class Ec2Vpc(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Ec2Vpc, 'ec2', lambda client: client.describe_vpcs()['Vpcs'])
+    def create():
+        return Terminator._create(Ec2Vpc, 'ec2', lambda client: client.describe_vpcs()['Vpcs'])
 
     @property
     def age_limit(self):
@@ -326,8 +326,8 @@ class Ec2Vpc(DbTerminator):
 
 class Ec2VpnConnection(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Ec2VpnConnection, 'ec2', lambda client: client.describe_vpn_connections()['VpnConnections'])
+    def create():
+        return Terminator._create(Ec2VpnConnection, 'ec2', lambda client: client.describe_vpn_connections()['VpnConnections'])
 
     @property
     def id(self):
@@ -349,8 +349,8 @@ class Ec2VpnConnection(DbTerminator):
 
 class Ec2VpnGateway(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Ec2VpnGateway, 'ec2', lambda client: client.describe_vpn_gateways()['VpnGateways'])
+    def create():
+        return Terminator._create(Ec2VpnGateway, 'ec2', lambda client: client.describe_vpn_gateways()['VpnGateways'])
 
     @property
     def id(self):
@@ -372,8 +372,8 @@ class Ec2VpnGateway(DbTerminator):
 
 class Ec2VpcPeer(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Ec2VpcPeer, 'ec2', lambda client: client.describe_vpc_peering_connections()['VpcPeeringConnections'])
+    def create():
+        return Terminator._create(Ec2VpcPeer, 'ec2', lambda client: client.describe_vpc_peering_connections()['VpcPeeringConnections'])
 
     @property
     def id(self):
@@ -395,8 +395,8 @@ class Ec2VpcPeer(DbTerminator):
 
 class Ec2SecurityGroup(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Ec2SecurityGroup, 'ec2', lambda client: client.describe_security_groups()['SecurityGroups'])
+    def create():
+        return Terminator._create(Ec2SecurityGroup, 'ec2', lambda client: client.describe_security_groups()['SecurityGroups'])
 
     @property
     def age_limit(self):
@@ -414,14 +414,29 @@ class Ec2SecurityGroup(DbTerminator):
     def ignore(self):
         return self.name == 'default' or self.name.startswith('default_elb_')
 
+    def revoke_sg_rules(self):
+        # Revoke Egress rules
+        self.client.revoke_security_group_egress(
+            GroupId=self.id, IpPermissions=self.instance.get("IpPermissionsEgress")
+        )
+
+        # Revoke Ingress rules
+        self.client.revoke_security_group_ingress(
+            GroupId=self.id, IpPermissions=self.instance.get("IpPermissions")
+        )
+
     def terminate(self):
-        self.client.delete_security_group(GroupId=self.id)
+        try:
+            self.client.delete_security_group(GroupId=self.id)
+        except botocore.exceptions.ClientError as ex:
+            if ex.response['Error']['Code'] == "DependencyViolation":
+                self.revoke_sg_rules()
 
 
 class ApiGatewayRestApi(Terminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, ApiGatewayRestApi, 'apigateway', lambda client: client.get_rest_apis()['items'])
+    def create():
+        return Terminator._create(ApiGatewayRestApi, 'apigateway', lambda client: client.get_rest_apis()['items'])
 
     @property
     def id(self):
@@ -441,8 +456,8 @@ class ApiGatewayRestApi(Terminator):
 
 class NetworkFirewall(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, NetworkFirewall, 'network-firewall', lambda client: client.list_firewalls()['Firewalls'])
+    def create():
+        return Terminator._create(NetworkFirewall, 'network-firewall', lambda client: client.list_firewalls()['Firewalls'])
 
     @property
     def id(self):
@@ -459,8 +474,8 @@ class NetworkFirewall(DbTerminator):
 
 class NetworkFirewallPolicy(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, NetworkFirewallPolicy, 'network-firewall', lambda client: client.list_firewall_policies()['FirewallPolicies'])
+    def create():
+        return Terminator._create(NetworkFirewallPolicy, 'network-firewall', lambda client: client.list_firewall_policies()['FirewallPolicies'])
 
     @property
     def age_limit(self):
@@ -482,8 +497,8 @@ class NetworkFirewallPolicy(DbTerminator):
 
 class NetworkFirewallRuleGroup(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, NetworkFirewallRuleGroup, 'network-firewall', lambda client: client.list_rule_groups()['RuleGroups'])
+    def create():
+        return Terminator._create(NetworkFirewallRuleGroup, 'network-firewall', lambda client: client.list_rule_groups()['RuleGroups'])
 
     @property
     def age_limit(self):

@@ -7,22 +7,26 @@ from terminator import (
 )
 
 
+def check_boolean_value(env_name: str) -> bool:
+    value = os.environ.get(env_name) or "false"
+    return value.lower() in ['true', '1', 'yes']
+
+
 # noinspection PyUnusedLocal
 def lambda_handler(event, context):
     # pylint: disable=unused-argument
     logger.setLevel(logging.INFO)
 
-    arn = context.invoked_function_arn.split(':')
+    targets = []
+    if check_boolean_value("TERMINATE_SMALL_SET"):
+        targets = [
+            "RdsDbCluster",
+            "Ec2Volume",
+            "Ec2Snapshot",
+            "Ec2Instance",
+            "Ec2Eip",
+            "Ec2NatGateway",
+            "Ec2InternetGateway"
+        ]
 
-    if len(arn) == 7:
-        arn.append('prod')  # hack to set the stage for testing in the lambda console
-
-    if len(arn) != 8 or arn[5] != 'function' or arn[6] != context.function_name:
-        raise Exception(f'error: unexpected arn: {arn}')
-
-    stage = arn[7]
-
-    api_name = os.environ['API_NAME']
-    test_account_id = os.environ['TEST_ACCOUNT_ID']
-
-    cleanup(stage, check=False, force=False, api_name=api_name, test_account_id=test_account_id)
+    cleanup(check=False, force=False, targets=targets)

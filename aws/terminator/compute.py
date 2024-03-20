@@ -9,8 +9,8 @@ from . import DbTerminator, Terminator, get_tag_dict_from_tag_list, get_account_
 
 class Ec2KeyPair(DbTerminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Ec2KeyPair, 'ec2', lambda client: client.describe_key_pairs()['KeyPairs'])
+    def create():
+        return Terminator._create(Ec2KeyPair, 'ec2', lambda client: client.describe_key_pairs()['KeyPairs'])
 
     @property
     def name(self):
@@ -22,8 +22,8 @@ class Ec2KeyPair(DbTerminator):
 
 class Ec2LoadBalancer(Terminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Ec2LoadBalancer, 'elb', lambda client: client.describe_load_balancers()['LoadBalancerDescriptions'])
+    def create():
+        return Terminator._create(Ec2LoadBalancer, 'elb', lambda client: client.describe_load_balancers()['LoadBalancerDescriptions'])
 
     @property
     def name(self):
@@ -39,8 +39,8 @@ class Ec2LoadBalancer(Terminator):
 
 class Ec2Instance(Terminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Ec2Instance, 'ec2',
+    def create():
+        return Terminator._create(Ec2Instance, 'ec2',
                                   lambda client: [i for r in client.describe_instances()['Reservations'] for i in r['Instances']])
 
     @property
@@ -73,9 +73,9 @@ class Ec2Instance(Terminator):
 
 class Ec2Snapshot(Terminator):
     @staticmethod
-    def create(credentials):
-        account = get_account_id(credentials)
-        return Terminator._create(credentials, Ec2Snapshot, 'ec2', lambda client: client.describe_snapshots(OwnerIds=[account])['Snapshots'])
+    def create():
+        account = get_account_id()
+        return Terminator._create(Ec2Snapshot, 'ec2', lambda client: client.describe_snapshots(OwnerIds=[account])['Snapshots'])
 
     @property
     def id(self):
@@ -95,9 +95,9 @@ class Ec2Snapshot(Terminator):
 
 class Ec2Image(Terminator):
     @staticmethod
-    def create(credentials):
-        account = get_account_id(credentials)
-        return Terminator._create(credentials, Ec2Image, 'ec2', lambda client: client.describe_images(Owners=[account])['Images'])
+    def create():
+        account = get_account_id()
+        return Terminator._create(Ec2Image, 'ec2', lambda client: client.describe_images(Owners=[account])['Images'])
 
     @property
     def id(self):
@@ -118,8 +118,8 @@ class Ec2Image(Terminator):
 
 class Ec2Volume(Terminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Ec2Volume, 'ec2', lambda client: client.describe_volumes()['Volumes'])
+    def create():
+        return Terminator._create(Ec2Volume, 'ec2', lambda client: client.describe_volumes()['Volumes'])
 
     @property
     def age_limit(self):
@@ -143,13 +143,13 @@ class Ec2Volume(Terminator):
 
 class Ec2TransitGateway(Terminator):
     @staticmethod
-    def create(credentials):
-        account = get_account_id(credentials)
+    def create():
+        account = get_account_id()
         filters = [{
             'Name': 'owner-id',
             'Values': [account]
         }]
-        return Terminator._create(credentials, Ec2TransitGateway, 'ec2',
+        return Terminator._create(Ec2TransitGateway, 'ec2',
                                   lambda client: client.describe_transit_gateways(Filters=filters)['TransitGateways'])
 
     @property
@@ -177,13 +177,13 @@ class Ec2TransitGateway(Terminator):
 
 class Ec2TransitGatewayAttachment(Terminator):
     @staticmethod
-    def create(credentials):
-        account = get_account_id(credentials)
+    def create():
+        account = get_account_id()
         filters = [{
             'Name': 'transit-gateway-owner-id',
             'Values': [account]
         }]
-        return Terminator._create(credentials, Ec2TransitGatewayAttachment, 'ec2',
+        return Terminator._create(Ec2TransitGatewayAttachment, 'ec2',
                                   lambda client: client.describe_transit_gateway_attachments(Filters=filters)['TransitGatewayAttachments'])
 
     @property
@@ -192,9 +192,7 @@ class Ec2TransitGatewayAttachment(Terminator):
 
     @property
     def name(self):
-        return "{0}/{1}".format(
-            self.instance['TransitGatewayId'],
-            self.instance['ResourceId'])
+        return f"{self.instance['TransitGatewayId']}/{self.instance['ResourceId']}"
 
     @property
     def created_time(self):
@@ -215,8 +213,8 @@ class Ec2TransitGatewayAttachment(Terminator):
 
 class ElasticBeanstalk(Terminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, ElasticBeanstalk, 'elasticbeanstalk', lambda client: client.describe_applications()['Applications'])
+    def create():
+        return Terminator._create(ElasticBeanstalk, 'elasticbeanstalk', lambda client: client.describe_applications()['Applications'])
 
     @property
     def id(self):
@@ -240,10 +238,10 @@ class ElasticBeanstalk(Terminator):
 
 class NeptuneSubnetGroup(DbTerminator):
     @staticmethod
-    def create(credentials):
+    def create():
         def _paginate_neptune_subnet_groups(client):
             return client.get_paginator('describe_db_subnet_groups').paginate().build_full_result()['DBSubnetGroups']
-        return Terminator._create(credentials, NeptuneSubnetGroup, 'neptune', _paginate_neptune_subnet_groups)
+        return Terminator._create(NeptuneSubnetGroup, 'neptune', _paginate_neptune_subnet_groups)
 
     @property
     def id(self):
@@ -263,8 +261,8 @@ class NeptuneSubnetGroup(DbTerminator):
 
 class EcrRepository(Terminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, EcrRepository, 'ecr', lambda client: client.describe_repositories()['repositories'])
+    def create():
+        return Terminator._create(EcrRepository, 'ecr', lambda client: client.describe_repositories()['repositories'])
 
     @property
     def name(self):
@@ -280,8 +278,8 @@ class EcrRepository(Terminator):
 
 class LambdaFunction(Terminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, LambdaFunction, 'lambda', lambda client: client.list_functions()['Functions'])
+    def create():
+        return Terminator._create(LambdaFunction, 'lambda', lambda client: client.list_functions()['Functions'])
 
     @property
     def name(self):
@@ -298,7 +296,7 @@ class LambdaFunction(Terminator):
 
 class NeptuneCluster(Terminator):
     @staticmethod
-    def create(credentials):
+    def create():
         def _paginate_neptune_clusters(client):
             results = client.describe_db_clusters()
             marker = results.pop('Marker', None)
@@ -307,7 +305,7 @@ class NeptuneCluster(Terminator):
                 results['DBClusters'].append(next_clusters['DBClusters'])
                 marker = next_clusters.pop('Marker', None)
             return results['DBClusters']
-        return Terminator._create(credentials, NeptuneCluster, 'neptune', _paginate_neptune_clusters)
+        return Terminator._create(NeptuneCluster, 'neptune', _paginate_neptune_clusters)
 
     @property
     def name(self):
@@ -323,14 +321,14 @@ class NeptuneCluster(Terminator):
 
 class EksCluster(Terminator):
     @staticmethod
-    def create(credentials):
+    def create():
         def _build_cluster_results(client):
             cluster_list = client.list_clusters()['clusters']
             results = []
             for cluster in cluster_list:
                 results.append(client.describe_cluster(name=cluster)['cluster'])
             return results
-        return Terminator._create(credentials, EksCluster, 'eks', _build_cluster_results)
+        return Terminator._create(EksCluster, 'eks', _build_cluster_results)
 
     @property
     def name(self):
@@ -354,14 +352,14 @@ class EksCluster(Terminator):
 
 class EksFargateProfile(Terminator):
     @staticmethod
-    def create(credentials):
+    def create():
         def _build_eks_fargate_profiles(client):
             results = []
             for cluster in client.list_clusters()['clusters']:
                 for fargate_profile in client.list_fargate_profiles(clusterName=cluster)['fargateProfileNames']:
                     results.append(client.describe_fargate_profile(clusterName=cluster, fargateProfileName=fargate_profile)['fargateProfile'])
             return results
-        return Terminator._create(credentials, EksFargateProfile, 'eks', _build_eks_fargate_profiles)
+        return Terminator._create(EksFargateProfile, 'eks', _build_eks_fargate_profiles)
 
     @property
     def name(self):
@@ -391,13 +389,52 @@ class EksFargateProfile(Terminator):
                 raise
 
 
+class EksNodegroup(Terminator):
+    @staticmethod
+    def create():
+        def _build_eks_nodgroups(client):
+            results = []
+            for cluster in client.list_clusters()['clusters']:
+                for nodegroup in client.list_nodegroups(clusterName=cluster)['nodegroups']:
+                    results.append(client.describe_nodegroup(clusterName=cluster, nodegroupName=nodegroup)['nodegroup'])
+            return results
+        return Terminator._create(EksNodegroup, 'eks', _build_eks_nodgroups)
+
+    @property
+    def name(self):
+        return self.instance['nodegroupName']
+
+    @property
+    def age_limit(self):
+        return datetime.timedelta(minutes=15)
+
+    @property
+    def created_time(self):
+        return self.instance['createdAt']
+
+    @property
+    def ignore(self):
+        return self.instance['status'] == ('DELETING')
+
+    @property
+    def cluster_name(self):
+        return self.instance['clusterName']
+
+    def terminate(self):
+        try:
+            self.client.delete_nodegroup(clusterName=self.cluster_name, nodegroupName=self.name)
+        except botocore.exceptions.ClientError as ex:
+            if not ex.response['Error']['Code'] == 'ResourceInUseException':
+                raise
+
+
 class ElasticLoadBalancing(Terminator):
     @staticmethod
-    def create(credentials):
+    def create():
         def _paginate_elastic_lbs(client):
             return client.get_paginator(
                 'describe_load_balancers').paginate().build_full_result()['LoadBalancerDescriptions']
-        return Terminator._create(credentials, ElasticLoadBalancing, 'elb', _paginate_elastic_lbs)
+        return Terminator._create(ElasticLoadBalancing, 'elb', _paginate_elastic_lbs)
 
     @property
     def name(self):
@@ -413,11 +450,11 @@ class ElasticLoadBalancing(Terminator):
 
 class ElasticLoadBalancingv2(Terminator):
     @staticmethod
-    def create(credentials):
+    def create():
         def _paginate_elastic_lbs(client):
             return client.get_paginator(
                 'describe_load_balancers').paginate().build_full_result()['LoadBalancers']
-        return Terminator._create(credentials, ElasticLoadBalancingv2, 'elbv2', _paginate_elastic_lbs)
+        return Terminator._create(ElasticLoadBalancingv2, 'elbv2', _paginate_elastic_lbs)
 
     @property
     def name(self):
@@ -443,11 +480,11 @@ class ElasticLoadBalancingv2(Terminator):
 
 class Elbv2TargetGroups(DbTerminator):
     @staticmethod
-    def create(credentials):
+    def create():
         def _paginate_target_groups(client):
             return client.get_paginator(
                 'describe_target_groups').paginate().build_full_result()['TargetGroups']
-        return Terminator._create(credentials, Elbv2TargetGroups, 'elbv2', _paginate_target_groups)
+        return Terminator._create(Elbv2TargetGroups, 'elbv2', _paginate_target_groups)
 
     @property
     def age_limit(self):
@@ -467,10 +504,10 @@ class Elbv2TargetGroups(DbTerminator):
 
 class Lightsail(Terminator):
     @staticmethod
-    def create(credentials):
+    def create():
         def _paginate_lightsail_instances(client):
             return client.get_paginator('get_instances').paginate().build_full_result()['instances']
-        return Terminator._create(credentials, Lightsail, 'lightsail', _paginate_lightsail_instances)
+        return Terminator._create(Lightsail, 'lightsail', _paginate_lightsail_instances)
 
     @property
     def name(self):
@@ -486,10 +523,10 @@ class Lightsail(Terminator):
 
 class LightsailKeyPair(Terminator):
     @staticmethod
-    def create(credentials):
+    def create():
         def _paginate_lightsail_key_pairs(client):
             return client.get_paginator('get_key_pairs').paginate().build_full_result()['keyPairs']
-        return Terminator._create(credentials, LightsailKeyPair, 'lightsail', _paginate_lightsail_key_pairs)
+        return Terminator._create(LightsailKeyPair, 'lightsail', _paginate_lightsail_key_pairs)
 
     @property
     def name(self):
@@ -505,10 +542,10 @@ class LightsailKeyPair(Terminator):
 
 class LightsailStaticIp(Terminator):
     @staticmethod
-    def create(credentials):
+    def create():
         def _paginate_lightsail_static_ips(client):
             return client.get_paginator('get_static_ips').paginate().build_full_result()['staticIps']
-        return Terminator._create(credentials, LightsailStaticIp, 'lightsail', _paginate_lightsail_static_ips)
+        return Terminator._create(LightsailStaticIp, 'lightsail', _paginate_lightsail_static_ips)
 
     @property
     def name(self):
@@ -522,10 +559,29 @@ class LightsailStaticIp(Terminator):
         self.client.release_static_ip(staticIpName=self.name)
 
 
+class LightsailInstanceSnapshot(Terminator):
+    @staticmethod
+    def create():
+        def _paginate_lightsail_instance_snapshots(client):
+            return client.get_paginator('get_instance_snapshots').paginate().build_full_result()['instanceSnapshots']
+        return Terminator._create(LightsailInstanceSnapshot, 'lightsail', _paginate_lightsail_instance_snapshots)
+
+    @property
+    def name(self):
+        return self.instance['name']
+
+    @property
+    def created_time(self):
+        return self.instance['createdAt']
+
+    def terminate(self):
+        self.client.delete_instance_snapshot(instanceSnapshotName=self.name)
+
+
 class AutoScalingGroup(Terminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, AutoScalingGroup, 'autoscaling', lambda client: client.describe_auto_scaling_groups()['AutoScalingGroups'])
+    def create():
+        return Terminator._create(AutoScalingGroup, 'autoscaling', lambda client: client.describe_auto_scaling_groups()['AutoScalingGroups'])
 
     @property
     def id(self):
@@ -545,13 +601,16 @@ class AutoScalingGroup(Terminator):
 
 class LaunchConfiguration(Terminator):
     @staticmethod
-    def create(credentials):
+    def create():
         return Terminator._create(
-            credentials,
             LaunchConfiguration,
             'autoscaling',
             lambda client: client.describe_launch_configurations()['LaunchConfigurations']
         )
+
+    @property
+    def age_limit(self):
+        return datetime.timedelta(minutes=30)
 
     @property
     def id(self):
@@ -575,9 +634,8 @@ class LaunchConfiguration(Terminator):
 
 class LaunchTemplate(Terminator):
     @staticmethod
-    def create(credentials):
+    def create():
         return Terminator._create(
-            credentials,
             LaunchTemplate,
             'ec2',
             lambda client: client.describe_launch_templates()['LaunchTemplates']
@@ -601,8 +659,8 @@ class LaunchTemplate(Terminator):
 
 class Ec2SpotInstanceRequest(Terminator):
     @staticmethod
-    def create(credentials):
-        return Terminator._create(credentials, Ec2SpotInstanceRequest, 'ec2', lambda client: client.describe_spot_instance_requests()['SpotInstanceRequests'])
+    def create():
+        return Terminator._create(Ec2SpotInstanceRequest, 'ec2', lambda client: client.describe_spot_instance_requests()['SpotInstanceRequests'])
 
     @property
     def name(self):
