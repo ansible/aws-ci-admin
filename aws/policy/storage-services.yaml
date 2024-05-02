@@ -10,6 +10,7 @@ Statement:
       - s3:DeleteObjects
       - s3:DeleteObjectTagging
       - s3:DeleteObjectVersionTagging
+      - s3:DeleteBucketInventoryConfiguration
       - s3:GetBucketAccelerateConfiguration
       - s3:GetBucketAcl
       - s3:GetBucketCors
@@ -41,6 +42,7 @@ Statement:
       - s3:ListAllMyBuckets
       - s3:ListBucket
       - s3:ListBucketVersions
+      - s3:ListBucketInventoryConfigurations
       - s3:ListBuckets
       - s3:ListObjectsV2
       - s3:PutBucketAcl
@@ -52,6 +54,7 @@ Statement:
       - s3:PutBucketRequestPayment
       - s3:PutBucketTagging
       - s3:PutBucketVersioning
+      - s3:PutBucketInventoryConfiguration
       - s3:PutEncryptionConfiguration
       - s3:PutLifecycleConfiguration
       - s3:PutObject
