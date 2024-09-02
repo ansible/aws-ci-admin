@@ -123,7 +123,7 @@ class Ec2Volume(Terminator):
 
     @property
     def age_limit(self):
-        return datetime.timedelta(minutes=15)
+        return datetime.timedelta(days=7)
 
     @property
     def id(self):

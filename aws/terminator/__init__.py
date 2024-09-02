@@ -186,7 +186,7 @@ class Terminator(abc.ABC):
 
     @property
     def age_limit(self) -> datetime.timedelta:
-        return datetime.timedelta(minutes=20)
+        return datetime.timedelta(days=7)
 
     @property
     def id(self) -> typing.Optional[str]:
