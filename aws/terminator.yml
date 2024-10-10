@@ -33,7 +33,7 @@
         - name: Set managed policies list
           tags: iam
           set_fact:
-            managed_policies: [ "{{ create_policy.policy.arn }}" ]
+            managed_policies: ["{{ create_policy.policy.arn }}"]
       when: terminate_small_set | default('true') | bool
     - block:
         - name: Create a list of policy file names without the path or extension
