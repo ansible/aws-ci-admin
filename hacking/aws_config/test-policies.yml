@@ -30,8 +30,7 @@
 
     - name: 'Fail if policy is too large'
       vars:
-        _query: 'results[?ansible_facts.oversized].item'
-        oversized_policies: "{{ policies | json_query(_query) | list }}"
+        oversized_policies: "{{ policies.results | selectattr('ansible_facts.oversized', 'equalto', true) | map(attribute='item') | list }}"
       debug:
         var: oversized_policies
       failed_when:

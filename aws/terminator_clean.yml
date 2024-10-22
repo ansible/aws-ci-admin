@@ -53,7 +53,9 @@
     - name: Create managed policies list
       tags: iam
       set_fact:
-        managed_policies: '{{ policies.files | map(attribute="path") | list | map("basename") | map("regex_replace", "^(.*)\.(yaml|yml)$", api_name + "-\1") | list }}'
+        managed_policies: '{{ policies_basenames | map("regex_replace", "^(.*)\.(yaml|yml)$", api_name + "-\1") | list }}'
+      vars:
+        policies_basenames: '{{ policies.files | map(attribute="path") | list | map("basename") }}'
 
     - name: Delete managed policy
       tags: iam
