@@ -147,7 +147,7 @@ class Ec2InternetGateway(DbTerminator):
 
     @property
     def age_limit(self):
-        return datetime.timedelta(minutes=25)
+        return datetime.timedelta(days=7)
 
     @property
     def id(self):
