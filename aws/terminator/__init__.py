@@ -264,7 +264,7 @@ class Terminator(abc.ABC):
     def is_persistent(self) -> bool:
         try:
             return get_tag_dict_from_tag_list(self.instance.get('Tags')).get('Persistent', 'false').lower() == 'true'
-        except:
+        except Exception:  # pylint: disable=broad-except
             return False
 
 
