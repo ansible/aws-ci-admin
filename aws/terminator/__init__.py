@@ -51,7 +51,9 @@ def cleanup(check: bool, force: bool, targets: typing.Optional[typing.List[str]]
 
 
 def process_instance(instance: 'Terminator', check: bool, force: bool = False) -> str:
-    if instance.ignore:
+    if instance.is_persistent():
+        status = 'persistent'
+    elif instance.ignore:
         status = 'ignored'
     elif force:
         status = terminate(instance, check)
@@ -186,7 +188,7 @@ class Terminator(abc.ABC):
 
     @property
     def age_limit(self) -> datetime.timedelta:
-        return datetime.timedelta(minutes=20)
+        return datetime.timedelta(days=7)
 
     @property
     def id(self) -> typing.Optional[str]:
@@ -258,6 +260,12 @@ class Terminator(abc.ABC):
 
     def is_vpc_default(self, vpc_id: str) -> bool:
         return self.default_vpc.get('VpcId') == vpc_id
+
+    def is_persistent(self) -> bool:
+        try:
+            return get_tag_dict_from_tag_list(self.instance.get('Tags')).get('Persistent', 'false').lower() == 'true'
+        except Exception:  # pylint: disable=broad-except
+            return False
 
 
 class DbTerminator(Terminator):

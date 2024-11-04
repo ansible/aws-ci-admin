@@ -262,7 +262,7 @@ class RdsDbCluster(Terminator):
 
     @property
     def age_limit(self):
-        return datetime.timedelta(minutes=60)
+        return datetime.timedelta(days=7)
 
     @property
     def created_time(self):
