@@ -20,8 +20,9 @@ logger = logging.getLogger('cleanup')
 T = typing.TypeVar('T')
 
 
-def get_aws_region():
-    return os.environ.get("CLEANUP_AWS_REGION") or "us-east-1"
+def get_cleanup_aws_regions():
+    regions = os.environ.get("CLEANUP_AWS_REGION") or "us-east-1"
+    return [x for x in regions.replace(' ', '').split(',') if x]
 
 
 def log_exception(message: str, *args, level: int = logging.ERROR) -> None:
@@ -42,12 +43,15 @@ def import_plugins() -> None:
 
 def cleanup(check: bool, force: bool, targets: typing.Optional[typing.List[str]] = None) -> None:
     kvs.domain_name = os.environ.get("DYNAMODB_TABLE_NAME")
+    kvs.aws_region = os.environ.get("TERMINATOR_AWS_REGION")
     kvs.initialize()
 
-    cleanup_resources(check, force, targets)
+    for region in get_cleanup_aws_regions():
+        Terminator._aws_region_name = region
+        cleanup_resources(check, force, targets)
 
-    if not targets or 'Database' in targets:
-        cleanup_database(check, force)
+        if not targets or 'Database' in targets:
+            cleanup_database(check, force)
 
 
 def process_instance(instance: 'Terminator', check: bool, force: bool = False) -> str:
@@ -174,7 +178,8 @@ def get_tag_dict_from_tag_list(tag_list: typing.Optional[typing.List[typing.Dict
 
 class Terminator(abc.ABC):
     """Base class for classes which find and terminate AWS resources."""
-    _default_vpc = None  # safe as long as executing only within a single region
+    _default_vpc = {}
+    _aws_region_name = None
 
     def __init__(self, client: botocore.client.BaseClient, instance: typing.Dict[str, typing.Any]):
         self.client = client
@@ -239,7 +244,7 @@ class Terminator(abc.ABC):
     @staticmethod
     def _create(instance_type: typing.Type['Terminator'], client_name: str,
                 describe_lambda: typing.Callable[[botocore.client.BaseClient], typing.List[typing.Dict[str, typing.Any]]]) -> typing.List['Terminator']:
-        client = boto3.client(client_name, region_name=get_aws_region())
+        client = boto3.client(client_name, region_name=Terminator._aws_region_name)
         instances = describe_lambda(client)
         terminators = [instance_type(client, instance) for instance in instances]
         logger.debug('located %s: count=%d', instance_type.__name__, len(terminators))
@@ -248,15 +253,15 @@ class Terminator(abc.ABC):
 
     @property
     def default_vpc(self) -> typing.Dict[str, str]:
-        if self._default_vpc is None:
+        if self._aws_region_name not in self._default_vpc:
             vpcs = self.client.describe_vpcs(Filters=[{'Name': 'isDefault', 'Values': ['true']}])['Vpcs']
 
             if vpcs:
-                self._default_vpc = vpcs[0]  # found default VPC
+                self._default_vpc[self._aws_region_name] = vpcs[0]  # found default VPC
             else:
-                self._default_vpc = {}  # no default VPC
+                self._default_vpc[self._aws_region_name] = {}  # no default VPC
 
-        return self._default_vpc
+        return self._default_vpc[self._aws_region_name]
 
     def is_vpc_default(self, vpc_id: str) -> bool:
         return self.default_vpc.get('VpcId') == vpc_id
@@ -317,9 +322,10 @@ class DbTerminator(Terminator):
 
 class KeyValueStore:
     """ DynamoDB data store for the AWS terminator """
-    def __init__(self, domain_name: typing.Optional[str] = None):
+    def __init__(self, domain_name: typing.Optional[str] = None, aws_region: typing.Optional[str] = None):
         self.ddb = None
         self.domain_name = domain_name
+        self.aws_region = aws_region
         self.table = None
         self.primary_key = 'id'
         self.initialized = False
@@ -329,7 +335,7 @@ class KeyValueStore:
         if self.initialized:
             return
 
-        self.ddb = boto3.resource('dynamodb', region_name=get_aws_region())
+        self.ddb = boto3.resource('dynamodb', region_name=self.aws_region)
 
         try:
             self.table = self.ddb.Table(self.domain_name)

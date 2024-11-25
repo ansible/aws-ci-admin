@@ -113,6 +113,12 @@ To run the terminator on all created resources use the following:
 EXTRA_VARS=ansible_python_interpreter=$(shell which python) terminate_small_set=false aws_region=us-east-2 make terminator
 ```
 
+To delete resources in multiple regions (e.g: 'us-east-1', 'us-east-2', 'us-west-1') with a terminator deployed in region 'us-east-1', run the following command:
+
+```
+EXTRA_VARS=ansible_python_interpreter=$(shell which python) cleanup_aws_regions='us-east-1,us-east-2,us-west-1' aws_region=us-east-1 make terminator
+```
+
 To deactivate the terminator on the AWS account, use the following command:
 
 ```shell

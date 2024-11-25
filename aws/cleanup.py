@@ -6,6 +6,7 @@ import argparse
 import logging
 import contextlib
 import os
+import typing
 
 
 try:
@@ -23,7 +24,7 @@ from terminator import (
 
 
 @contextlib.contextmanager
-def update_aws_environ(aws_profile, aws_region, dynamodb_table):
+def update_aws_environ(aws_profile: typing.Optional[str], aws_region: typing.Optional[str], dynamodb_table: typing.Optional[str]):
     """
     Temporarily updates the ``os.environ`` dictionary in-place.
     The 'AWS_REGION' will be removed from the os.environ dictionnary and will
@@ -72,7 +73,7 @@ def main():
     if args.verbose:
         logger.setLevel(logging.DEBUG)
 
-    with update_aws_environ(aws_profile=args.profile, aws_region=args.region, dynamodb_table=args.table_name):
+    with update_aws_environ(aws_profile=args.profile, aws_region=','.join(args.region), dynamodb_table=args.table_name):
         cleanup(check=args.check, force=args.force, targets=args.target)
 
 
@@ -80,6 +81,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Terminate or destroy stale resources in the AWS account.')
 
     parser.add_argument('--region',
+                        action='append',
                         required=True,
                         help='The AWS region from which resources will be terminated')
 
