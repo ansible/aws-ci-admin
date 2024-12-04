@@ -1,0 +1,13 @@
+Version: '2012-10-17'
+Statement:
+
+  # Describe and Delete EC2 and RDS resources
+  - Sid: AllowRegionalUnrestrictedResourceActionsWhichIncurNoFees
+    Effect: Allow
+    Action:
+      - ec2:Delete*
+      - ec2:Describe*
+      - rds:Delete*
+      - rds:Describe*
+    Resource:
+      - "*"
