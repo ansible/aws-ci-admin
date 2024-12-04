@@ -85,7 +85,7 @@
       tags: lambda
       lambda_layer:
         name: "{{ lambda_layer_name }}"
-        description: "Python requirements for {{ lambda_name }}"
+        description: "Python requirements for {{ lambda_name }}-* lambdas"
         compatible_runtimes:
           - python3.9
         path: "{{ packaging_dir }}/terminator-requirements.zip"
@@ -101,46 +101,9 @@
         include:
           - "{{ playbook_dir }}/terminator_lambda.py"
           - "{{ playbook_dir }}/terminator/*.py"
-    - name: deploy terminator package
-      tags: lambda
-      lambda:
-        region: "{{ aws_region }}"
-        name: "{{ lambda_name }}"
-        local_path: "{{ packaging_dir }}/terminator.zip"
-        runtime: python3.9
-        timeout: 120
-        handler: terminator_lambda.lambda_handler
-        memory_size: 256
-        role: "{{ iam_role_name }}"
-        publish: True
-        environment:
-          TERMINATOR_AWS_REGION: "{{ aws_region }}"
-          CLEANUP_AWS_REGION: "{{ cleanup_aws_regions | default(aws_region) }}"
-          DYNAMODB_TABLE_NAME: "{{ dynamodb_table_name }}"
-        layers:
-          - "{{ terminator_requirements_layer.layer.layer_version_arn }}"
-      register: terminator_function
-    - name: alias terminator functions
-      tags: lambda
-      lambda_alias:
-        region: "{{ aws_region }}"
-        state: present
-        name: "{{ lambda_alias_name }}"
-        description: "{{ lambda_alias_name }} alias"
-        function_name: "{{ terminator_function.meta.function_name }}"
-        version: "{{ terminator_function.meta.version }}"
-    - name: schedule terminator event
-      tags: schedule
-      cloudwatch_event:
-        region: "{{ aws_region }}"
-        rule_name: "{{ cloudwatch_event_name }}"
-        schedule_expression: rate(4 hours)
-        function_name: "{{ terminator_function.meta.function_name }}"
-      register: event
-    - name: schedule terminator event permissions
-      tags: schedule
-      lambda_policy:
-        region: "{{ aws_region }}"
-        function_name: "{{ terminator_function.meta.function_name }}"
-        source_arn: "arn:aws:events:{{ aws_region }}:{{ aws_account_id }}:rule/{{ cloudwatch_event_name }}"
-        principal_service: events.amazonaws.com
+    - name: Deploy lambdas
+      ansible.builtin.include_tasks: deploy_lambda.yml
+      with_items: "{{ terminator_region_group_config }}"
+      vars:
+        terminator_package_path: "{{ packaging_dir }}/terminator.zip"
+        terminator_layer_arn: "{{ terminator_requirements_layer.layer.layer_version_arn }}"
