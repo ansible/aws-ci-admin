@@ -102,6 +102,9 @@
           - "{{ playbook_dir }}/terminator_lambda.py"
           - "{{ playbook_dir }}/terminator/*.py"
     - name: Deploy lambdas
+      tags:
+        - schedule
+        - lambda
       ansible.builtin.include_tasks: deploy_lambda.yml
       with_items: "{{ terminator_region_group_config }}"
       vars:
