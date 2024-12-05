@@ -1,0 +1,53 @@
+- vars:
+    lambda_region_group_name: "{{ lambda_name }}-{{ item.group_name }}"
+    lambda_region_group_alias_name: "{{ lambda_alias_name }}-{{ item.group_name }}"
+    cloudwatch_region_group_event_name: "{{ cloudwatch_event_name }}-{{ item.group_name }}"
+    cleanup_aws_regions: "{{ item.regions | join(',') }}"
+  block:
+    - name: Deploy terminator package
+      tags: lambda
+      lambda:
+        region: "{{ aws_region }}"
+        name: "{{ lambda_region_group_name }}"
+        local_path: "{{ terminator_package_path }}"
+        runtime: python3.9
+        timeout: 120
+        handler: terminator_lambda.lambda_handler
+        memory_size: 256
+        role: "{{ iam_role_name }}"
+        publish: True
+        environment:
+          TERMINATOR_AWS_REGION: "{{ aws_region }}"
+          CLEANUP_AWS_REGION: "{{ cleanup_aws_regions }}"
+          DYNAMODB_TABLE_NAME: "{{ dynamodb_table_name }}"
+          TERMINATE_SMALL_SET: "{{ terminate_small_set | default('true') }}"
+        layers:
+          - "{{ terminator_layer_arn }}"
+      register: terminator_function
+
+    - name: Alias terminator functions
+      tags: lambda
+      lambda_alias:
+        region: "{{ aws_region }}"
+        state: present
+        name: "{{ lambda_region_group_alias_name }}"
+        description: "{{ lambda_region_group_alias_name }} alias"
+        function_name: "{{ terminator_function.meta.function_name }}"
+        version: "{{ terminator_function.meta.version }}"
+
+    - name: Schedule terminator event
+      tags: schedule
+      cloudwatch_event:
+        region: "{{ aws_region }}"
+        rule_name: "{{ cloudwatch_region_group_event_name }}"
+        schedule_expression: rate(4 hours)
+        function_name: "{{ terminator_function.meta.function_name }}"
+      register: event
+
+    - name: Schedule terminator event permissions
+      tags: schedule
+      lambda_policy:
+        region: "{{ aws_region }}"
+        function_name: "{{ terminator_function.meta.function_name }}"
+        source_arn: "arn:aws:events:{{ aws_region }}:{{ aws_account_id }}:rule/{{ cloudwatch_region_group_event_name }}"
+        principal_service: events.amazonaws.com

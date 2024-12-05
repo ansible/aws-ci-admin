@@ -18,3 +18,26 @@ lambda_name: "{{ api_name }}-function"
 lambda_alias_name: "prod"
 cloudwatch_event_name: "{{ api_name }}-event"
 dynamodb_table_name: "{{ api_name | regex_replace('[^a-zA-Z0-9]+', '_') }}_resources"
+terminator_region_group_config:
+  - group_name: NA
+    regions:
+      - us-east-1
+      - us-east-2
+      - us-west-1
+      - us-west-2
+      - ca-central-1
+  - group_name: EU
+    regions:
+      - eu-central-1
+      - eu-west-1
+      - eu-west-2
+      - eu-west-3
+      - eu-north-1
+  - group_name: APAC
+    regions:
+      - ap-south-1
+      - ap-northeast-3
+      - ap-northeast-2
+      - ap-southeast-1
+      - ap-southeast-2
+      - ap-northeast-1
