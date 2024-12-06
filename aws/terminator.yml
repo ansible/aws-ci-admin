@@ -20,21 +20,6 @@
       tags: always
       set_fact:
         managed_policies: []
-    - name: create managed policy for a small set of resources
-      block:
-        - name: create managed policy
-          tags: iam
-          amazon.aws.iam_managed_policy:
-            name: "{{ iam_managed_policy_name }}"
-            description: "A managed policy to run AWS terminator with api name '{{ api_name }}'"
-            policy: "{{ lookup('file', 'smallset-policy.yaml') | from_yaml | to_json }}"
-            state: present
-          register: create_policy
-        - name: Set managed policies list
-          tags: iam
-          set_fact:
-            managed_policies: ["{{ create_policy.policy.arn }}"]
-      when: terminate_small_set | default('true') | bool
     - block:
         - name: Create a list of policy file names without the path or extension
           tags: iam
@@ -60,7 +45,6 @@
         - name: create list of managed policies arn
           set_fact:
             managed_policies: "{{ create_policies.results | map(attribute='policy.arn') | list }}"
-      when: not (terminate_small_set | default('true') | bool)
     - name: create iam role for terminator functions
       tags: iam
       amazon.aws.iam_role:
@@ -133,7 +117,6 @@
           TERMINATOR_AWS_REGION: "{{ aws_region }}"
           CLEANUP_AWS_REGION: "{{ cleanup_aws_regions | default(aws_region) }}"
           DYNAMODB_TABLE_NAME: "{{ dynamodb_table_name }}"
-          TERMINATE_SMALL_SET: "{{ terminate_small_set | default('true') }}"
         layers:
           - "{{ terminator_requirements_layer.layer.layer_version_arn }}"
       register: terminator_function
