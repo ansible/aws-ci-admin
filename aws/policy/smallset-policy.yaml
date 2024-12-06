@@ -4,11 +4,8 @@ Statement:
   - Sid: AllowRegionalUnrestrictedResourceActionsWhichIncurNoFees
     Effect: Allow
     Action:
+      - ec2:Delete*
       - ec2:Describe*
-      - ec2:DeleteSnapshot
-      - ec2:DeleteNatGateway
-      - ec2:DetachInternetGateway
-      - ec2:DeleteInternetGateway
       - ec2:ModifyInstanceAttribute
       - ec2:TerminateInstances
       - ec2:ReleaseAddress
@@ -23,14 +20,7 @@ Statement:
       - dynamodb:DescribeTable
       - dynamodb:GetItem
       - dynamodb:PutItem
-      - rds:DeleteDBCluster
-      - rds:DescribeDB*
+      - rds:Delete*
+      - rds:Describe*
       - rds:ModifyDBCluster
     Resource: "*"
-
-  - Sid: AllowGlobalResourceRestrictedActionsWhichIncurNoFees
-    Effect: Allow
-    Action:
-      - ec2:DeleteVolume
-    Resource:
-      - "*"
