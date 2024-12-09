@@ -1,7 +1,7 @@
 # The API name is used to tag and prefix aws resources.
 api_name: 'terminator-cleanup'
 
-# The AWS Region that tests will be run in
+# The AWS Region that the lambdas will be deployed to
 aws_region: 'us-east-1'
 
 iam_role_name: "{{ api_name }}"
@@ -18,6 +18,8 @@ lambda_name: "{{ api_name }}-function"
 lambda_alias_name: "prod"
 cloudwatch_event_name: "{{ api_name }}-event"
 dynamodb_table_name: "{{ api_name | regex_replace('[^a-zA-Z0-9]+', '_') }}_resources"
+
+# The list of region groups from which to delete resources
 terminator_region_group_config:
   - group_name: NA
     regions:

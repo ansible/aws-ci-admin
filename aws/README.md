@@ -1,19 +1,18 @@
+# Introduction
+
+[This repository](https://github.com/ansible/aws-ci-admin) is used by the Ansible Cloud Content Team to clean up stale AWS resources. It is based off of the [aws-terminator](https://github.com/mattclay/aws-terminator) repo.
+
+By default, this is configured to delete resources across all regions. The regions are lumped into three groups that are managed with one lambda per group.
+
 # Contributor process
 
-[This repository](https://github.com/ansible/aws-ci-admin) is used by [Ansible](https://github.com/ansible/ansible) to deploy policies for AWS integration tests.
-
-To enable new integration tests for the CI account, you can start the process by opening a pull request here.
-
 There are two things you may need to do:
-1. Update the permissions in the [policy directory](https://github.com/ansible/aws-ci-admin/tree/main/aws/policy) with those needed to run your integration tests (policy groups are defined below). Check the existing policies to avoid adding duplicates.
-   The [AWS module developer guidelines](https://docs.ansible.com/ansible/devel/dev_guide/platforms/aws_guidelines.html#aws-permissions-for-integration-tests) contains some tips on finding the minimum IAM policy needed for running the integration tests.
-2. Add a terminator class in the corresponding file in the [terminator directory](https://github.com/ansible/aws-ci-admin/tree/main/aws/terminator) if you are adding permissions to create a new type of AWS resource. Skip this step and submit your pull request if you are only adding permissions to modify resources that are already supported.
+1. Update the permissions in the [policy directory](https://github.com/ansible/aws-ci-admin/tree/main/aws/policy) with those needed to clean up the desired resources. Check the existing policies to avoid adding duplicates. When updating the policies, please ensure you keep permissions alphabetically ordered.
+2. Add a terminator class in the corresponding file in the [terminator directory](https://github.com/ansible/aws-ci-admin/tree/main/aws/terminator) if you are adding permissions to delete a new type of AWS resource. Skip this step and submit your pull request if you are only adding permissions to modify resources that are already supported.
 
 The rest of this section is about creating and testing your terminator class.
 
-If your integration tests fail there could be stray resources left in the CI account. To mitigate the risk, integration tests should always be contained in a block with an always statement that cleans up if the tests fail. In case that also fails (such as due to a flaky AWS service or broken module) we deploy a lambda function that runs the terminator classes to find and delete stray resources.
-
-To begin, you need to use the Terminator base class or the DbTerminator base class. We terminate resources found based on their age. Not all AWS resources return the creation date timestamp so those resources are stored in a database with the time when the terminator class located them and we approximate when to delete them from that.
+To begin, you need to use the `Terminator` base class or the `DbTerminator` base class. We terminate resources found based on their age. Not all AWS resources return the creation date timestamp so those resources are stored in a database with the time when the terminator class located them and we approximate when to delete them from that.
 * If the resource has a creation date timestamp use the Terminator base class.
 * If the resource does not have a creation date timestamp use the DbTerminator base class.
 
@@ -77,7 +76,7 @@ To start using `cleanup.py` you will need to:
 
 * Run `cleanup.py` using the class name as the target to locate the resources in us-east-1:
 
-      python ./cleanup.py --check --region us-east-2 --profile ansible --table-name ansible-test-0403
+      python ./cleanup.py --check --region us-east-1 --profile ansible --target Ec2Volume
       cleanup     : DEBUG    located Ec2Volume: count=4
       cleanup     : INFO     [Running in check mode] Would have terminate the resource 'Ec2Volume: name=None, id=vol-06376869027e814e7 age=1125 days, 2:49:05.959000, stale=True'
       cleanup     : INFO     checked Ec2Volume: name=None, id=vol-06376869027e814e7 age=1125 days, 2:49:05.959000, stale=True
@@ -88,39 +87,40 @@ To start using `cleanup.py` you will need to:
       cleanup     : INFO     checked Ec2Volume: name=hebailey-test-bastion, id=vol-041d2eaa4ffdd4c45 age=140 days, 2:25:00.608000, stale=True
 
 
-* The class property `age_limit` determines when a resource becomes stale. This is 20 minutes by default. Once a resource is stale, the terminator can delete it. Use check mode (-c or --check) to see what your class would delete without actually removing it.
+* The class property `age_limit` determines when a resource becomes stale. This is 7 days by default. Once a resource is stale, the terminator can delete it. Use check mode (-c or --check) to see what your class would delete without actually removing it.
 * Once a resource is stale you can test that it can be cleaned up by removing the check mode flag.
-  For example, `python cleanup.py --stage dev --target Ec2Instance -v`.
+  For example, `python cleanup.py --region us-east-1 --profile ansible --target Ec2Instance -v`.
 * You can forcibly delete resources that are not stale by using --force (or -f). Be aware that this can also remove resources that do not use the Terminator or DbTerminator base classes. Such unsupported resources will not be cleaned up by the CI account.
 
-After you have tested that your terminator class can be used by `cleanup.py`, submit your pull request. A core developer will review and deploy your changes as outlined below.
+After you have tested that your terminator class can be used by `cleanup.py`, submit your pull request.
 
 
 # Deploying to AWS
 
-Deploying to AWS is done using an Ansible playbook [terminator.yml](https://github.com/ansible/aws-ci-admin/blob/main/aws/terminator.yml), which can be easily run with make using the provided Makefile.
+Deploying to AWS is done using an Ansible playbook [terminator.yml](https://github.com/ansible/aws-ci-admin/blob/main/aws/terminator.yml), which can be easily run with make using the provided Makefile. See the [config.yml file](https://github.com/ansible/aws-ci-admin/blob/main/aws/config.yml) to adjust how the terminator lambdas are deployed. Ensure your AWS profile and credentials are correctly configured before using the Makefile. You will need to have the ansible collections listed in https://github.com/ansible/aws-ci-admin/blob/main/requirements.yml installed.
 
-Here is an example on how to delete resources from the AWS region 'us-east-2'
-
-```shell
-EXTRA_VARS=ansible_python_interpreter=$(shell which python) aws_region=us-east-2 make terminator
-```
-
-By default the terminator will run on a small set of resources (`terminate_small_set=true`).
-To run the terminator on all created resources use the following: 
+The initial deployment of the lambdas can be done by running:
 
 ```shell
-EXTRA_VARS=ansible_python_interpreter=$(shell which python) terminate_small_set=false aws_region=us-east-2 make terminator
+$ make terminator
 ```
 
-To delete resources in multiple regions (e.g: 'us-east-1', 'us-east-2', 'us-west-1') with a terminator deployed in region 'us-east-1', run the following command:
+This will create the necessary policies and roles, deploy the lambdas and create a Cloudwatch schedule for the lambdas.
 
+After initial deployment, changes to policies can be deployed with:
+
+```shell
+$ make test_policy
 ```
-EXTRA_VARS=ansible_python_interpreter=$(shell which python) cleanup_aws_regions='us-east-1,us-east-2,us-west-1' aws_region=us-east-1 make terminator
+
+Changes to the terminator lambda can be deployed with:
+
+```shell
+$ make terminator_lambda
 ```
 
 To deactivate the terminator on the AWS account, use the following command:
 
 ```shell
-EXTRA_VARS=ansible_python_interpreter=$(shell which python) terminate_small_set=false aws_region=us-east-2 make terminator_clean
+$ make terminator_clean
 ```
