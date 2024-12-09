@@ -19,15 +19,17 @@
       tags: schedule
       amazon.aws.cloudwatchevent_rule:
         state: absent
-        name: "{{ cloudwatch_event_name }}"
+        name: "{{ cloudwatch_event_name }}-{{ item.group_name }}"
         region: "{{ aws_region }}"
+      with_items: "{{ terminator_region_group_config }}"
 
     - name: Delete lambda function
       tags: lambda
       amazon.aws.lambda:
-        name: "{{ lambda_name }}"
+        name: "{{ lambda_name }}-{{ item.group_name }}"
         region: "{{ aws_region }}"
         state: absent
+      with_items: "{{ terminator_region_group_config }}"
 
     - name: Delete lambda layer
       tags: lambda
