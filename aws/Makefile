@@ -31,7 +31,7 @@ terminator_lambda:
 
 .PHONY: test_policy
 test_policy:
-	$(RUN_TEST_POLICY_PLAYBOOK)
+	$(RUN_TERMINATOR_ACTIVATE) --tags=iam
 
 .PHONY: test
 test: yamllint pycodestyle pylint
