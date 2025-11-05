@@ -1,4 +1,4 @@
-PYTHON3 ?= python3.7
+PYTHON3 ?= python3.13
 
 EXTRA_VARS=ansible_python_interpreter=$(shell which python)
 RUN_TEST_POLICY_PLAYBOOK=ansible-playbook -e '$(EXTRA_VARS)' deploy-test-policy.yml $(FLAGS)

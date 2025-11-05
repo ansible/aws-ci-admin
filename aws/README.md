@@ -69,7 +69,7 @@ Warning: Always use the --check (or -c) flag and the --target flag to avoid acci
 It is safest to use `cleanup.py` in an empty/dev account.
 
 To start using `cleanup.py` you will need to:
-* Use Python 3.7+
+* Use Python 3.13+
 * Install required python libraries using
 
       cd aws && pip install -r requirements.txt

@@ -1,4 +1,4 @@
-PYTHON3 ?= python3.7
+PYTHON3 ?= python3.13
 
 .PHONY: default
 default:
