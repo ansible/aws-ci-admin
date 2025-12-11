@@ -10,7 +10,7 @@
         region: "{{ aws_region }}"
         name: "{{ lambda_region_group_name }}"
         local_path: "{{ terminator_package_path }}"
-        runtime: python3.9
+        runtime: python3.13
         timeout: 120
         handler: terminator_lambda.lambda_handler
         memory_size: 256
